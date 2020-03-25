@@ -103,6 +103,9 @@ void load_model(std::string path) {
 					std::vector<std::string> index;
 					split(face[i],index);
 					indices.push_back(atol(index[0].c_str()));
+					index.clear();
+					index.shrink_to_fit();
+					//free ip memory
 				}
 				m->add_face(indices);
 			}
