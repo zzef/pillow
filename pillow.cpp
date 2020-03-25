@@ -19,23 +19,27 @@ struct vertex {
 	float x;
 	float y;
 	float z;
+	float w;
+};
+
+struct point2D {
+	float x;
+	float y;
 };
 
 class Mesh {
 	
-	private:
+	public:
 	
 		std::vector<struct vertex> v_list;
 		std::vector<std::vector<long>> f_list;
 		std::string name;
 		
-	public:
-	
 		Mesh(std::string title) {
 			this->name=title;
 		}	
 		void add_vertex(float x, float y, float z) {
-			struct vertex v = {x ,y ,x};
+			struct vertex v = {x ,y ,z, 1};
 			this->v_list.push_back(v);	
 		}
 		double vertices() {
@@ -53,7 +57,7 @@ class Mesh {
 			printf("vertices\n");
 			printf("===================\n");
 			for (int i = 0 ; i<this->v_list.size(); i++) {
-				printf("%f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z);
+				printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
 			}
 			printf("===================\n");
 			printf("faces\n");
@@ -184,6 +188,14 @@ void flip_buffer(SDL_Renderer* renderer, SDL_Texture* Frame) {
 }
 
 void set_pixel(int x, int y, unsigned char* color) {
+	if (x<0 || x>WIN_WIDTH) {
+		printf("clipped x\n");
+		return;
+	}
+	if (y<0 || y>WIN_HEIGHT) {
+		printf("clipped y\n");
+		return;
+	}
 	buffer[x][y][0]=color[3];
 	buffer[x][y][1]=color[2];
 	buffer[x][y][2]=color[1];
@@ -289,6 +301,7 @@ void initialize() {
 	load_model("models/Tree low.obj");
 	load_model("models/Gel Gun.obj");
 	load_model("models/WindMill.obj");
+	load_model("models/cube.obj");
 
 	for (int i = 0; i<models.size(); i++) {
 		models[i]->print_mesh();
@@ -337,10 +350,60 @@ void render() {
 	unsigned char color[4] = {120,120,120,255};
 	unsigned char red[4] = {255,0,0,255};
 	
-	for (int i = 0; i < 10000; i++) {
-		draw_line(rand() % WIN_WIDTH,rand() % WIN_HEIGHT,rand() % WIN_WIDTH,rand() % WIN_HEIGHT,color);
+	int m = 3;
+
+	//for (int i = 0; i < 10000; i++) {
+	//	draw_line(rand() % WIN_WIDTH,rand() % WIN_HEIGHT,rand() % WIN_WIDTH,rand() % WIN_HEIGHT,color);
+	//}
+	//draw_line(10,10,454,333,red);
+	
+	std::vector <struct point2D>verts;
+	printf("==================\n");
+	for (int i = 0 ; i<models[m]->vertices(); i++) {
+		float proj_x = (float) (models[m]->v_list[i].x)/((models[m]->v_list[i].z));
+		float proj_y = (float) (models[m]->v_list[i].y)/((models[m]->v_list[i].z));
+		printf(" proj = %f %f\n",proj_x,proj_y);
+		struct point2D s = {proj_x,proj_y};
+		verts.push_back(s);
 	}
-	draw_line(10,10,454,333,red);
+
+	printf("all verts new\n");
+	for (int i = 0; i<verts.size(); i++) {
+		printf("%f %f\n",verts[i].x,verts[i].y);
+	}
+
+	for (int i = 0 ; i<1; i++) {
+		for (int j = 0; j<models[m]->f_list[i].size()-1; j++) {
+	
+				
+			long sv = models[m]->f_list[i][j];
+			long ev = models[m]->f_list[i][j+1];
+	
+			float sx = verts[sv-1].x;
+			float sy = verts[sv-1].y;
+			float ex = verts[ev-1].x;
+			float ey = verts[ev-1].y;
+			
+			draw_line(sx,sy,ex,ey,color);			
+	
+
+			printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
+		}
+
+		long sv = models[m]->f_list[i][0];	
+		long ev = models[m]->f_list[i][models[m]->f_list[i].size()-1];
+	
+		float sx = verts[sv-1].x;
+		float sy = verts[sv-1].y;
+		float ex = verts[ev-1].x;
+		float ey = verts[ev-1].y;
+			
+		draw_line(sx,sy,ex,ey,color);			
+
+
+			printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
+	}
+
 }
 
 void update() {
@@ -375,7 +438,7 @@ int main(int argc, char* args[]) {
 	int frames = 0;
 	clock_t before = clock();
 	initialize();
-	return 0;
+	//return 0;
 	while(1) {
 		clear_buffer();
 		if((clock() - before) / CLOCKS_PER_SEC > 1) {
