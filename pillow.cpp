@@ -7,11 +7,13 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <math.h>
 
 #define WIN_WIDTH 1024
-#define WIN_HEIGHT 768
+#define WIN_HEIGHT 1024
 #define RESOLUTION 1
 #define WINDOW_TITLE "Pillow"
+#define PI 3.14159265
 
 //Create frame buffer
 
@@ -53,22 +55,22 @@ class Mesh {
 		}
 		void print_mesh() {
 			std::cout<<name<<"\n";
-			printf("===================\n");
-			printf("vertices\n");
-			printf("===================\n");
+			//printf("===================\n");
+			//printf("vertices\n");
+			//printf("===================\n");
 			for (int i = 0 ; i<this->v_list.size(); i++) {
-				printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
+				//printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
 			}
-			printf("===================\n");
-			printf("faces\n");
-			printf("===================\n");
+			//printf("===================\n");
+			//printf("faces\n");
+			//printf("===================\n");
 			for (int i = 0; i<this->f_list.size(); i++) {
 				for (int j = 0; j<this->f_list[i].size(); j++) {
-					printf("%ld ",f_list[i][j]);
+					//printf("%ld ",f_list[i][j]);
 				}
-				printf("\n");
+				//printf("\n");
 			}	
-			printf("\n");	
+			//printf("\n");	
 		}
 			
 };	
@@ -139,9 +141,9 @@ template<char r1, char c1, char r2, char c2>
 void mat_mul(float m1[r1][c1], float m2[r2][c2], char *rows2, char *columns2, float*** mr) {
 
 	if (c1 != r2) {
-		printf("not possible to multiply %dx%d and %dx%d.\n",
-			r1,c1,r2,c2
-		);
+		//printf("not possible to multiply %dx%d and %dx%d.\n",
+			//r1,c1,r2,c2
+		//);
 		return;
 	}
 	
@@ -154,10 +156,10 @@ void mat_mul(float m1[r1][c1], float m2[r2][c2], char *rows2, char *columns2, fl
 		for (int j = 0; j<c2; j++) {	
 			float sum = 0;
 			for (int k = 0; k<c1; k++) {
-				//printf("%f x %f, ",m1[i][k],m2[k][j]);
+				////printf("%f x %f, ",m1[i][k],m2[k][j]);
 				sum+=(m1[i][k]*m2[k][j]);
 			}	
-			//printf("\n====\n");
+			////printf("\n====\n");
 			res[i][j]=sum;
 		}
 	}
@@ -189,11 +191,11 @@ void flip_buffer(SDL_Renderer* renderer, SDL_Texture* Frame) {
 
 void set_pixel(int x, int y, unsigned char* color) {
 	if (x<0 || x>WIN_WIDTH) {
-		printf("clipped x\n");
+		////printf("clipped x\n");
 		return;
 	}
 	if (y<0 || y>WIN_HEIGHT) {
-		printf("clipped y\n");
+		////printf("clipped y\n");
 		return;
 	}
 	buffer[x][y][0]=color[3];
@@ -209,22 +211,16 @@ void optimized_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* colo
 	int ex = e_x; 
 	int ey = e_y;
 
-	if (s_x>e_x){
-		sx=e_x;
-		ex=s_x;
-	}
+	int dy = ey-sy;
+	int dx = ex-sx;
 
-	if (s_y>e_y){
-		sy=e_y;
-		ey=s_y;
-	}
+	if (abs(dy)>abs(dx)) {
+		if (s_y>e_y){
+			sy=e_y;
+			ey=s_y;
+			sx=e_x;
+		}
 
-	float dy = (float) ey-sy;
-	float dx = (float) ex-sx;
-	float dydx = (float) dy/dx;	
-	float dxdy = 1/dydx;	
-
-	if (dydx>1) {
 		int threshold = dy;
 		int threshold_inc = dy*2;
 		int delta = dx*2;
@@ -240,6 +236,12 @@ void optimized_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* colo
 		}
 	}
 	else {
+		if (s_x>e_x){
+			sx=e_x;
+			ex=s_x;
+			sy=e_y;
+		}
+
 		int threshold = dx;
 		int threshold_inc = dx*2;
 		int delta = dy*2;
@@ -260,33 +262,58 @@ void optimized_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* colo
 
 void naive_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* color)  {
 
-	int sx = s_x;
-	int sy = s_y;
-	int ex = e_x; 
-	int ey = e_y;
-
-	if (s_y>e_y){
-		sy=e_y;
-		ey=s_y;
-	}
+	int sx = (int) s_x;
+	int sy = (int) s_y;
+	int ex = (int) e_x; 
+	int ey = (int) e_y;
 
 	float dy = (float) ey-sy;
 	float dx = (float) ex-sx;
 	float dydx = (float) dy/dx;	
 	float dxdy = 1/dydx;
 	
-	if (dydx>1) {
+	//printf("gradient %f\n",dydx);
+	
+	bool debug = false;
+	if ((sx==1024 && sy==0) && (ex==768 && ey==192)) {
+		debug=true;
+		//printf("-=====================================\n");
+	}
+	
+		//printf("drawing line (%i,%i) -> (%i,%i)\n",sx,sy,ex,ey);
+	
+	if (dydx>1 || dydx<-1) {
+			//printf("here===================\n");
+		if (s_y>e_y){
+			sy=e_y;
+			ey=s_y;
+			sx=e_x;
+		}
+			//printf("starting with (%i,%i)\n",sx,sy);
+	
 		float i = (float) sx;
 		for (int j = sy; j<ey; j++) { 
-			set_pixel(i,j,color);
+			set_pixel((int)i,(int)j,color);
+			//printf("%f + %f",i,dxdy);
 			i+=dxdy;
+			//printf(" = %f\n",i);
+			//printf("setting pixel (%i,%i)\n",i,j);
 		}
 	}
 	else {
+			//printf("ehere=================\n");
+		if (s_x>e_x){
+			sx=e_x;
+			ex=s_x;
+			sy=e_y;
+		}
 		float j = (float) sy;
 		for (int i = sx; i<ex; i++) {
-			set_pixel(i,j,color);
+			set_pixel((int)i,(int)j,color);
+			//printf("%f + %f",j,dydx);
 			j+=dydx;
+			//printf(" = %f\n",j);
+			//printf("setting pixel (%i,%i)\n",(int)i,(int)j);
 		}
 	}
 
@@ -329,17 +356,17 @@ void initialize() {
 
 	for (int i = 0; i<rows; i++) {
 		for (int j = 0; j<columns; j++) {
-			printf("%f ",ptr[i][j]);
+			//printf("%f ",ptr[i][j]);
 		}
-		printf("\n");
+		//printf("\n");
 	}
 
 	mat_mul<3,4,4,2>(m34t,m42t,&rows,&columns,&ptr);
 	for (int i = 0; i<rows; i++) {
 		for (int j = 0; j<columns; j++) {
-			printf("%f ",ptr[i][j]);
+			//printf("%f ",ptr[i][j]);
 		}
-		printf("\n");
+		//printf("\n");
 	}
 
 }
@@ -358,21 +385,29 @@ void render() {
 	//draw_line(10,10,454,333,red);
 	
 	std::vector <struct point2D>verts;
-	printf("==================\n");
+	//printf("==================\n");
+	int fov = 110;
+	float S = 1/(tan((fov/2)*(PI/180)));
 	for (int i = 0 ; i<models[m]->vertices(); i++) {
-		float proj_x = (float) (models[m]->v_list[i].x)/((models[m]->v_list[i].z));
-		float proj_y = (float) (models[m]->v_list[i].y)/((models[m]->v_list[i].z));
-		printf(" proj = %f %f\n",proj_x,proj_y);
-		struct point2D s = {proj_x,proj_y};
+		 (models[m]->v_list[i].x)+=0.005;
+		 (models[m]->v_list[i].y)+=0.005;
+		float x = (float) (models[m]->v_list[i].x)*S; 
+		float y = (float) (models[m]->v_list[i].y)*S;
+		float z = (float) 0.1*((models[m]->v_list[i].z-5));
+		float proj_x = (x / -z);
+		float proj_y = (y / -z);
+		//printf(" proj = %f %f\n",proj_x,proj_y);
+		struct point2D s = {(proj_x*50)+(WIN_WIDTH/2),(proj_y*50)+(WIN_HEIGHT/2)};
 		verts.push_back(s);
+		set_pixel(s.x,s.y,color);
 	}
 
-	printf("all verts new\n");
+	//printf("all verts new\n");
 	for (int i = 0; i<verts.size(); i++) {
-		printf("%f %f\n",verts[i].x,verts[i].y);
+		//printf("%f %f\n",verts[i].x,verts[i].y);
 	}
 
-	for (int i = 0 ; i<1; i++) {
+	for (int i = 0 ; i<models[m]->faces(); i++) {
 		for (int j = 0; j<models[m]->f_list[i].size()-1; j++) {
 	
 				
@@ -387,7 +422,7 @@ void render() {
 			draw_line(sx,sy,ex,ey,color);			
 	
 
-			printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
+			//printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
 		}
 
 		long sv = models[m]->f_list[i][0];	
@@ -401,7 +436,7 @@ void render() {
 		draw_line(sx,sy,ex,ey,color);			
 
 
-			printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
+		//printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
 	}
 
 }
