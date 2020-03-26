@@ -29,8 +29,34 @@ struct point2D {
 	float y;
 };
 
-class Mesh {
+int fov = 90;
+float S = 1/(tan((fov/2)*(PI/180)));
+
+float pm[4][4] = {
 	
+	{ S, 0, 0, 0 },
+	{ 0, S, 0, 0 },
+	{ 0, 0,-1,-1 },
+	{ 0, 0, 0, 0 }
+
+};
+
+class Camera {
+	
+	public:
+		float transform[4][4] = {
+			
+			{ 1, 0, 0, 0 },
+			{ 0, 1, 0, 0 },
+			{ 0, 0, 1, 0 },
+			{ 0, 0, 0, 1 }
+ 	
+		};
+	
+};
+
+class Mesh {
+
 	public:
 	
 		std::vector<struct vertex> v_list;
@@ -39,40 +65,132 @@ class Mesh {
 		
 		Mesh(std::string title) {
 			this->name=title;
-		}	
+		}
+	
 		void add_vertex(float x, float y, float z) {
 			struct vertex v = {x ,y ,z, 1};
 			this->v_list.push_back(v);	
 		}
+
 		double vertices() {
 			return v_list.size();
 		}
+
 		void add_face(std::vector<long> face) {
 			this->f_list.push_back(face);
 		}
+
 		double faces() {
 			return f_list.size();
 		}
+
 		void print_mesh() {
 			std::cout<<name<<"\n";
-			//printf("===================\n");
-			//printf("vertices\n");
-			//printf("===================\n");
+			printf("===================\n");
+			printf("vertices\n");
+			printf("===================\n");
 			for (int i = 0 ; i<this->v_list.size(); i++) {
-				//printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
+				printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
 			}
-			//printf("===================\n");
-			//printf("faces\n");
-			//printf("===================\n");
+			printf("===================\n");
+			printf("faces\n");
+			printf("===================\n");
 			for (int i = 0; i<this->f_list.size(); i++) {
 				for (int j = 0; j<this->f_list[i].size(); j++) {
-					//printf("%ld ",f_list[i][j]);
+					printf("%ld ",f_list[i][j]);
 				}
-				//printf("\n");
+				printf("\n");
 			}	
-			//printf("\n");	
+			printf("\n");	
 		}
+
+		void scale(float x, float y, float z) {
+				
+			float scale_mat[4][4] = {
+					
+				{ x, 0, 0, 0 },
+				{ 0, y, 0, 0 },
+				{ 0, 0, z, 0 },
+				{ 0, 0, 0, 1 }
 			
+			};
+			
+			this->apply_transform(scale_mat);
+			
+		}
+		
+		void rotate_x(float angle) {
+
+			float t = (angle*(PI/180.0));
+			float rot_x[4][4] = {
+					
+				{   1,      0,      0,      0   },
+				{   0,   cos(t), -sin(t),   0   },
+				{   0,   sin(t),  cos(t),   0,  },
+				{   0,      0,      0,      1   }
+				
+			};
+			this->apply_transform(rot_x);
+
+		}
+
+		void rotate_y(float angle) {
+
+			float t = (angle*(PI/180.0));
+			float rot_y[4][4] = {
+					
+				{ cos(t),   0,    sin(t),   0   },
+				{   0,      1,      0,      0   },
+				{-sin(t),   0,    cos(t),   0   },
+				{   0,      0,      0,      1   }
+				
+			};
+			this->apply_transform(rot_y);
+
+		}
+
+		void rotate_z(float angle) {
+
+			float t = (angle*(PI/180.0));
+			float rot_z[4][4] = {
+					
+				{ cos(t),-sin(t),   0,      0   },
+				{ sin(t), cos(t),   0,      0   },
+				{   0,      0,      1,      0   },
+				{   0,      0,      0,      1   }
+				
+			};
+			this->apply_transform(rot_z);
+
+		}
+
+		void translate(float x, float y, float z) {
+
+			float trans[4][4] = {
+
+				{ 1, 0, 0, 0 },
+				{ 0, 1, 0, 0 },
+				{ 0, 0, 1, 0 },
+				{ x, y, z, 1 }
+			
+			};
+			this->apply_transform(trans);
+
+		}
+		
+		void apply_transform(float tm[4][4]) {
+
+			for	(long i = 0; i<this->vertices(); i++) {
+			
+				this->v_list[i].x = (float) ( this->v_list[i].x * tm[0][0] ) + ( this->v_list[i].y * tm[1][0] ) + ( this->v_list[i].z * tm[2][0] ) + ( this->v_list[i].w * tm[3][0] );
+				this->v_list[i].y = (float) ( this->v_list[i].x * tm[0][1] ) + ( this->v_list[i].y * tm[1][1] ) + ( this->v_list[i].z * tm[2][1] ) + ( this->v_list[i].w * tm[3][1] );
+				this->v_list[i].z = (float) ( this->v_list[i].x * tm[0][2] ) + ( this->v_list[i].y * tm[1][2] ) + ( this->v_list[i].z * tm[2][2] ) + ( this->v_list[i].w * tm[3][2] );
+				this->v_list[i].w = (float) ( this->v_list[i].x * tm[0][3] ) + ( this->v_list[i].y * tm[1][3] ) + ( this->v_list[i].z * tm[2][3] ) + ( this->v_list[i].w * tm[3][3] );
+
+			}
+	
+		}
+	
 };	
 
 std::vector<Mesh*> models;
@@ -190,11 +308,11 @@ void flip_buffer(SDL_Renderer* renderer, SDL_Texture* Frame) {
 }
 
 void set_pixel(int x, int y, unsigned char* color) {
-	if (x<0 || x>WIN_WIDTH) {
+	if (x<0 || x>=WIN_WIDTH) {
 		////printf("clipped x\n");
 		return;
 	}
-	if (y<0 || y>WIN_HEIGHT) {
+	if (y<0 || y>=WIN_HEIGHT) {
 		////printf("clipped y\n");
 		return;
 	}
@@ -330,6 +448,10 @@ void initialize() {
 	load_model("models/WindMill.obj");
 	load_model("models/cube.obj");
 
+
+	models[3]->scale(0.5,0.5,0.5);
+	models[3]->print_mesh();	
+
 	for (int i = 0; i<models.size(); i++) {
 		models[i]->print_mesh();
 	}
@@ -371,34 +493,29 @@ void initialize() {
 
 }
 
-
-void render() {
+void render_mesh(Mesh *m, Camera *camera) {
 
 	unsigned char color[4] = {120,120,120,255};
-	unsigned char red[4] = {255,0,0,255};
-	
-	int m = 3;
-
-	//for (int i = 0; i < 10000; i++) {
-	//	draw_line(rand() % WIN_WIDTH,rand() % WIN_HEIGHT,rand() % WIN_WIDTH,rand() % WIN_HEIGHT,color);
-	//}
-	//draw_line(10,10,454,333,red);
-	
 	std::vector <struct point2D>verts;
 	//printf("==================\n");
-	int fov = 110;
-	float S = 1/(tan((fov/2)*(PI/180)));
-	for (int i = 0 ; i<models[m]->vertices(); i++) {
-		 (models[m]->v_list[i].x)+=0.005;
-		 (models[m]->v_list[i].y)+=0.005;
-		float x = (float) (models[m]->v_list[i].x)*S; 
-		float y = (float) (models[m]->v_list[i].y)*S;
-		float z = (float) 0.1*((models[m]->v_list[i].z-5));
-		float proj_x = (x / -z);
-		float proj_y = (y / -z);
-		//printf(" proj = %f %f\n",proj_x,proj_y);
-		struct point2D s = {(proj_x*50)+(WIN_WIDTH/2),(proj_y*50)+(WIN_HEIGHT/2)};
+
+	float transz = -4.0f;
+	m->rotate_y(1.0f);
+	m->translate(0,0,transz);
+	for (struct vertex v : m->v_list ) {
+				
+		float x = (float) ( v.x * pm[0][0] ) + ( v.y * pm[1][0] ) + ( v.z * pm[2][0] ) + ( v.w * pm[3][0] );
+		float y = (float) ( v.x * pm[0][1] ) + ( v.y * pm[1][1] ) + ( v.z * pm[2][1] ) + ( v.w * pm[3][1] );
+		float z = (float) ( v.x * pm[0][2] ) + ( v.y * pm[1][2] ) + ( v.z * pm[2][2] ) + ( v.w * pm[3][2] );
+		float w = (float) ( v.x * pm[0][3] ) + ( v.y * pm[1][3] ) + ( v.z * pm[2][3] ) + ( v.w * pm[3][3] );
+		
+		struct point2D s = {x/w,y/w};
+		s.x=(s.x*WIN_WIDTH)+WIN_WIDTH/2;
+		s.y=(-s.y*WIN_HEIGHT)+WIN_HEIGHT/2;
 		verts.push_back(s);
+	}
+
+	for (struct point2D s: verts) {
 		set_pixel(s.x,s.y,color);
 	}
 
@@ -407,12 +524,12 @@ void render() {
 		//printf("%f %f\n",verts[i].x,verts[i].y);
 	}
 
-	for (int i = 0 ; i<models[m]->faces(); i++) {
-		for (int j = 0; j<models[m]->f_list[i].size()-1; j++) {
+	for (int i = 0 ; i<m->faces(); i++) {
+		for (int j = 0; j<m->f_list[i].size()-1; j++) {
 	
 				
-			long sv = models[m]->f_list[i][j];
-			long ev = models[m]->f_list[i][j+1];
+			long sv = m->f_list[i][j];
+			long ev = m->f_list[i][j+1];
 	
 			float sx = verts[sv-1].x;
 			float sy = verts[sv-1].y;
@@ -425,8 +542,8 @@ void render() {
 			//printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
 		}
 
-		long sv = models[m]->f_list[i][0];	
-		long ev = models[m]->f_list[i][models[m]->f_list[i].size()-1];
+		long sv = m->f_list[i][0];	
+		long ev = m->f_list[i][m->f_list[i].size()-1];
 	
 		float sx = verts[sv-1].x;
 		float sy = verts[sv-1].y;
@@ -438,6 +555,22 @@ void render() {
 
 		//printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
 	}
+	m->translate(0,0,-transz);
+}
+
+void render() {
+
+	unsigned char color[4] = {120,120,120,255};
+	unsigned char red[4] = {255,0,0,255};
+	
+	int m = 3;
+
+	//for (int i = 0; i < 10000; i++) {
+	//	draw_line(rand() % WIN_WIDTH,rand() % WIN_HEIGHT,rand() % WIN_WIDTH,rand() % WIN_HEIGHT,color);
+	//}
+	//draw_line(10,10,454,333,red);
+	Camera *cam = new Camera();
+	render_mesh(models[m],cam);	
 
 }
 
