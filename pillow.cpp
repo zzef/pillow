@@ -9,11 +9,10 @@
 #include <iostream>
 #include <math.h>
 
-#define WIN_WIDTH 1024
-#define WIN_HEIGHT 1024
+#define WIN_WIDTH 800
+#define WIN_HEIGHT 800
 #define RESOLUTION 1
 #define WINDOW_TITLE "Pillow"
-#define PI 3.14159265
 
 //Create frame buffer
 
@@ -29,10 +28,10 @@ struct point2D {
 	float y;
 };
 
-int fov = 90;
-float S = 1/(tan((fov/2)*(PI/180)));
+const int fov = 110;
+const float S = 1/(tan((fov/2)*(M_PI/180)));
 
-float pm[4][4] = {
+const float pm[4][4] = {
 	
 	{ S, 0, 0, 0 },
 	{ 0, S, 0, 0 },
@@ -72,7 +71,7 @@ class Mesh {
 			this->v_list.push_back(v);	
 		}
 
-		double vertices() {
+		long vertices() {
 			return v_list.size();
 		}
 
@@ -80,7 +79,7 @@ class Mesh {
 			this->f_list.push_back(face);
 		}
 
-		double faces() {
+		long faces() {
 			return f_list.size();
 		}
 
@@ -121,12 +120,12 @@ class Mesh {
 		
 		void rotate_x(float angle) {
 
-			float t = (angle*(PI/180.0));
+			float t = ((angle*M_PI)/180);
 			float rot_x[4][4] = {
 					
 				{   1,      0,      0,      0   },
 				{   0,   cos(t), -sin(t),   0   },
-				{   0,   sin(t),  cos(t),   0,  },
+				{   0,   sin(t),  cos(t),   0   },
 				{   0,      0,      0,      1   }
 				
 			};
@@ -136,7 +135,7 @@ class Mesh {
 
 		void rotate_y(float angle) {
 
-			float t = (angle*(PI/180.0));
+			float t = ((angle*M_PI)/180);
 			float rot_y[4][4] = {
 					
 				{ cos(t),   0,    sin(t),   0   },
@@ -151,7 +150,7 @@ class Mesh {
 
 		void rotate_z(float angle) {
 
-			float t = (angle*(PI/180.0));
+			float t = ((angle*M_PI)/180);
 			float rot_z[4][4] = {
 					
 				{ cos(t),-sin(t),   0,      0   },
@@ -182,10 +181,10 @@ class Mesh {
 
 			for	(long i = 0; i<this->vertices(); i++) {
 			
-				this->v_list[i].x = (float) ( this->v_list[i].x * tm[0][0] ) + ( this->v_list[i].y * tm[1][0] ) + ( this->v_list[i].z * tm[2][0] ) + ( this->v_list[i].w * tm[3][0] );
-				this->v_list[i].y = (float) ( this->v_list[i].x * tm[0][1] ) + ( this->v_list[i].y * tm[1][1] ) + ( this->v_list[i].z * tm[2][1] ) + ( this->v_list[i].w * tm[3][1] );
-				this->v_list[i].z = (float) ( this->v_list[i].x * tm[0][2] ) + ( this->v_list[i].y * tm[1][2] ) + ( this->v_list[i].z * tm[2][2] ) + ( this->v_list[i].w * tm[3][2] );
-				this->v_list[i].w = (float) ( this->v_list[i].x * tm[0][3] ) + ( this->v_list[i].y * tm[1][3] ) + ( this->v_list[i].z * tm[2][3] ) + ( this->v_list[i].w * tm[3][3] );
+				this->v_list[i].x = ( this->v_list[i].x * tm[0][0] ) + ( this->v_list[i].y * tm[1][0] ) + ( this->v_list[i].z * tm[2][0] ) + ( this->v_list[i].w * tm[3][0] );
+				this->v_list[i].y = ( this->v_list[i].x * tm[0][1] ) + ( this->v_list[i].y * tm[1][1] ) + ( this->v_list[i].z * tm[2][1] ) + ( this->v_list[i].w * tm[3][1] );
+				this->v_list[i].z = ( this->v_list[i].x * tm[0][2] ) + ( this->v_list[i].y * tm[1][2] ) + ( this->v_list[i].z * tm[2][2] ) + ( this->v_list[i].w * tm[3][2] );
+				this->v_list[i].w = ( this->v_list[i].x * tm[0][3] ) + ( this->v_list[i].y * tm[1][3] ) + ( this->v_list[i].z * tm[2][3] ) + ( this->v_list[i].w * tm[3][3] );
 
 			}
 	
@@ -447,9 +446,9 @@ void initialize() {
 	load_model("models/Gel Gun.obj");
 	load_model("models/WindMill.obj");
 	load_model("models/cube.obj");
+	load_model("models/Plane.obj");
 
 
-	models[3]->scale(0.5,0.5,0.5);
 	models[3]->print_mesh();	
 
 	for (int i = 0; i<models.size(); i++) {
@@ -498,17 +497,19 @@ void render_mesh(Mesh *m, Camera *camera) {
 	unsigned char color[4] = {120,120,120,255};
 	std::vector <struct point2D>verts;
 	//printf("==================\n");
-
-	float transz = -4.0f;
-	m->rotate_y(1.0f);
+	float sf = 1;
+	m->scale(sf,sf,sf);
+	float transz = -6.0f;
+	m->rotate_y(-0.8f);
 	m->translate(0,0,transz);
+	
 	for (struct vertex v : m->v_list ) {
 				
 		float x = (float) ( v.x * pm[0][0] ) + ( v.y * pm[1][0] ) + ( v.z * pm[2][0] ) + ( v.w * pm[3][0] );
 		float y = (float) ( v.x * pm[0][1] ) + ( v.y * pm[1][1] ) + ( v.z * pm[2][1] ) + ( v.w * pm[3][1] );
 		float z = (float) ( v.x * pm[0][2] ) + ( v.y * pm[1][2] ) + ( v.z * pm[2][2] ) + ( v.w * pm[3][2] );
 		float w = (float) ( v.x * pm[0][3] ) + ( v.y * pm[1][3] ) + ( v.z * pm[2][3] ) + ( v.w * pm[3][3] );
-		
+		//should do clipping at this point apparently	
 		struct point2D s = {x/w,y/w};
 		s.x=(s.x*WIN_WIDTH)+WIN_WIDTH/2;
 		s.y=(-s.y*WIN_HEIGHT)+WIN_HEIGHT/2;
@@ -556,6 +557,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 		//printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
 	}
 	m->translate(0,0,-transz);
+	m->scale(1/sf,1/sf,1/sf);
 }
 
 void render() {
