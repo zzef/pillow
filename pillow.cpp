@@ -29,15 +29,17 @@ struct point2D {
 	float z;
 };
 
+const float far = -10;
+const float near = -1;
 const int fov = 110;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
-const float AR = (float) WIN_WIDTH/WIN_HEIGHT;
+const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
 const float pm[4][4] = {
 	
-	{ S/AR, 0, 0, 0 },
+	{ S/aspect_ratio, 0, 0, 0 },
 	{ 0, S, 0, 0 },
-	{ 0, 0,-1,-1 },
-	{ 0, 0, 0, 0 }
+	{ 0, 0,-(far/(far-near)),-1 },
+	{ 0, 0,-(far*near)/(far-near), 0 }
 
 };
 
@@ -532,7 +534,7 @@ void render() {
 	//render_mesh(models[0],cam);	
 	//render_mesh(models[1],cam);	
 	//render_mesh(models[2],cam);	
-	render_mesh(models[3],cam);	
+	//render_mesh(models[3],cam);	
 	render_mesh(models[6],cam);	
 	//render_mesh(models[5],cam);	
 
