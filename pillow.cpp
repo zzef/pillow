@@ -9,8 +9,8 @@
 #include <iostream>
 #include <math.h>
 
-#define WIN_WIDTH 800
-#define WIN_HEIGHT 800
+#define WIN_WIDTH 1024
+#define WIN_HEIGHT 768
 #define RESOLUTION 1
 #define WINDOW_TITLE "Pillow"
 
@@ -26,14 +26,15 @@ struct vertex {
 struct point2D {
 	float x;
 	float y;
+	float z;
 };
 
 const int fov = 110;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
-
+const float AR = (float) WIN_WIDTH/WIN_HEIGHT;
 const float pm[4][4] = {
 	
-	{ S, 0, 0, 0 },
+	{ S/AR, 0, 0, 0 },
 	{ 0, S, 0, 0 },
 	{ 0, 0,-1,-1 },
 	{ 0, 0, 0, 0 }
@@ -432,21 +433,6 @@ void draw_line(int s_x, int s_y, int e_x, int e_y, unsigned char* color) {
 	naive_bresenham(s_x,s_y,e_x,e_y,color);
 }
 
-void initialize() {
-
-	load_model("models/Tree low.obj");
-	load_model("models/Gel Gun.obj");
-	load_model("models/WindMill.obj");
-	load_model("models/cube.obj");
-	load_model("models/Plane.obj");
-
-	for (int i = 0; i<models.size(); i++) {
-		models[i]->normalize();
-		models[i]->print_mesh();
-	}
-	
-}
-
 void render_mesh(Mesh *m, Camera *camera) {
 
 	unsigned char color[4] = {120,120,120,255};
@@ -464,7 +450,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 		float z = (float) ( v.x * pm[0][2] ) + ( v.y * pm[1][2] ) + ( v.z * pm[2][2] ) + ( v.w * pm[3][2] );
 		float w = (float) ( v.x * pm[0][3] ) + ( v.y * pm[1][3] ) + ( v.z * pm[2][3] ) + ( v.w * pm[3][3] );
 		//should do clipping at this point apparently	
-		struct point2D s = {x/w,y/w};
+		struct point2D s = {x/w,y/w,z/w};
 		s.x=(s.x*WIN_WIDTH)+WIN_WIDTH/2;
 		s.y=(-s.y*WIN_HEIGHT)+WIN_HEIGHT/2;
 		verts.push_back(s);
@@ -514,6 +500,25 @@ void render_mesh(Mesh *m, Camera *camera) {
 	m->scale(1/sf,1/sf,1/sf);
 }
 
+void initialize() {
+
+	load_model("models/Tree low.obj");
+	load_model("models/Gel Gun.obj");
+	load_model("models/WindMill.obj");
+	load_model("models/cube.obj");
+	load_model("models/Love.obj");
+	load_model("models/low-poly-mill.obj");
+	load_model("models/suzanne.obj");
+	load_model("models/camera.obj");
+	load_model("models/Lowpoly_tree_sample.obj");
+
+	for (int i = 0; i<models.size(); i++) {
+		models[i]->normalize();
+		models[i]->print_mesh();
+	}
+	
+}
+
 void render() {
 
 	unsigned char color[4] = {120,120,120,255};
@@ -527,8 +532,9 @@ void render() {
 	//render_mesh(models[0],cam);	
 	//render_mesh(models[1],cam);	
 	//render_mesh(models[2],cam);	
-	//render_mesh(models[3],cam);	
-	render_mesh(models[4],cam);	
+	render_mesh(models[3],cam);	
+	render_mesh(models[6],cam);	
+	//render_mesh(models[5],cam);	
 
 }
 
