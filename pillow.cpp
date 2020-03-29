@@ -38,8 +38,8 @@ struct vector3D {
 
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
-const float far = 10;
-const float near = 1;
+const float far = 4;
+const float near = 3;
 const int fov = 110;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
@@ -492,14 +492,14 @@ float dot3D (struct vector3D v1, struct vector3D v2) {
 void render_mesh(Mesh *m, Camera *camera) {
 
 	unsigned char color[4] = {120,120,120,255};
-	std::vector <struct vector3D>verts;
+	std::vector <struct vertex>clip_coords;
 	////printf("==================\n");
-	float sf = 1.0;
+	float sf = 1.5;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.0f;
-	float tz = -2.0f;
-	m->rotate_y(0.8f);
+	float ty = -1.0f;
+	float tz = -3.5f;
+	m->rotate_y(0.2f);
 	m->translate(tx,ty,tz);
 
 	for (struct vertex v : m->v_list ) {
@@ -511,57 +511,121 @@ void render_mesh(Mesh *m, Camera *camera) {
 		
 		//WILL NEEEEEEED TO PERFORM CLIPPING AND ENCORPORATE INTO LINE DRAWING
 
-		//printf("projected points: (%f, %f, %f, %f)\n",x,y,z,w);
-	
-		//NOW IN RASTER SPACE BELOW	
-		struct vector3D s = {x/w,y/w,z/w};
-		s.x=(s.x*WIN_WIDTH)+WIN_WIDTH/2;
-		s.y=(-s.y*WIN_HEIGHT)+WIN_HEIGHT/2;
-		verts.push_back(s);
-	}
-	//printf("\n");
+		struct vertex c = {x,y,z,w};
+		clip_coords.push_back(c);
 
-	for (struct vector3D s: verts) {
-		//set_pixel(s.x,s.y,color);
 	}
 
-	////printf("all verts new\n");
-	for (int i = 0; i<verts.size(); i++) {
-		////printf("%f %f\n",verts[i].x,verts[i].y);
-	}
-
-	
-	for (int i = 0 ; i<m->polygons(); i++) {
-		
+	for (int i = 0; i<m->polygons(); i++) {			
 		for (int j = 0; j<m->f_list[i].size()-1; j++) {
 			
 			long sv = m->f_list[i][j];
 			long ev = m->f_list[i][j+1];
 	
-			float sx = verts[sv-1].x;
-			float sy = verts[sv-1].y;
-			float ex = verts[ev-1].x;
-			float ey = verts[ev-1].y;
-			
-			draw_line(sx,sy,ex,ey,color);			
+			float sx = clip_coords[sv-1].x;
+			float ex = clip_coords[ev-1].x;
+
+			float sy = clip_coords[sv-1].y;
+			float ey = clip_coords[ev-1].y;
+
+			float sz = clip_coords[sv-1].z;
+			float ez = clip_coords[ev-1].z;
+
+			float sw = clip_coords[sv-1].w;
+			float ew = clip_coords[ev-1].w;
 	
+			if (sz>sw && ez>ew) {
+			//both parts of line outside of box;
+			}
+			else if (ez<=ew && sz>=sw) {
+			
+				
+				float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float sty = (-(sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
 
-			////printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
+				float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float eny = (-(ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+			
+				float t = (sw-ez)/(sz-ez);
+
+				float nx = ex+t*((sx-ex));
+				float ny = ey+(t*(sy-ey));
+		
+				float ntx = ((nx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float nty = ((-ny/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+					
+				draw_line(enx,eny,ntx,nty,color);
+				
+				
+			}
+			else if (sz<sw && ez>ew) {
+				
+			}
+			else {
+					
+				float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float sty = ((-sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+				float eny = ((-ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+				
+				draw_line(stx,sty,enx,eny,color);
+			}
+
 		}
-
+		
 		long sv = m->f_list[i][0];	
 		long ev = m->f_list[i][m->f_list[i].size()-1];
 	
-		float sx = verts[sv-1].x;
-		float sy = verts[sv-1].y;
-		float ex = verts[ev-1].x;
-		float ey = verts[ev-1].y;
+		float sx = clip_coords[sv-1].x;
+		float ex = clip_coords[ev-1].x;
+
+		float sy = clip_coords[sv-1].y;
+		float ey = clip_coords[ev-1].y;
+
+		float sz = clip_coords[sv-1].z;
+		float ez = clip_coords[ev-1].z;
+
+		float sw = clip_coords[sv-1].w;
+		float ew = clip_coords[ev-1].w;
+
+		if (sz>sw && ez>ew) {
+			//both parts of line outside of box;
+		}
+		else if (sz>sw && ez<ew) {
+		
+				float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float sty = (-(sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+
+				float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float eny = (-(ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
 			
-		draw_line(sx,sy,ex,ey,color);			
+				float t = (sw-ez)/(sz-ez);
 
+				float nx = ex+t*((sx-ex));
+				float ny = ey+(t*(sy-ey));
+		
+				float ntx = ((nx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float nty = ((-ny/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+				
+				draw_line(enx,eny,ntx,nty,color);
+				
+		}
+		else if (sz<sw && ez>ew) {
+			
+		}
+		else {
 
-		////printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
+			float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
+			float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
+			float sty = ((-sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+			float eny = ((-ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+
+			draw_line(stx,sty,enx,eny,color);
+		}
+
 	}
+	
+
 	m->translate(-tx,-ty,-tz);
 	m->scale(1/sf,1/sf,1/sf);
 }
