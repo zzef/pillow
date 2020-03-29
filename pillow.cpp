@@ -30,7 +30,7 @@ struct viewport {
 	float h;
 };
 
-struct point2D {
+struct vector3D {
 	float x;
 	float y;
 	float z;
@@ -63,6 +63,10 @@ class Camera {
 			{ 0, 0, 0, 1 }
  	
 		};
+	struct vector3D eye_point() {
+		struct vector3D ep = {0,0,0};
+		return ep;
+	}
 	
 };
 
@@ -72,6 +76,7 @@ class Mesh {
 	
 		std::vector<struct vertex> v_list;
 		std::vector<std::vector<long>> f_list;
+		std::vector<struct vector3D> n_list;
 		std::string name;
 		float max = 1;		
 
@@ -99,7 +104,17 @@ class Mesh {
 				this->v_list[i].z/=max;
 			}
 		}
-	
+
+		void add_normal(float x, float y, float z) {
+			struct vector3D n = {x ,y ,z};
+			this->n_list.push_back(n);	
+		}
+
+		long normals() {
+			return n_list.size();
+		}
+
+
 		void add_vertex(float x, float y, float z) {
 			struct vertex v = {x ,y ,z, 1};
 			this->v_list.push_back(v);	
@@ -119,22 +134,29 @@ class Mesh {
 
 		void print_mesh() {
 			std::cout<<name<<"\n";
-			//printf("===================\n");
-			//printf("vertices\n");
-			//printf("===================\n");
+			printf("===================\n");
+			printf("vertices\n");
+			printf("===================\n");
 			for (int i = 0 ; i<this->v_list.size(); i++) {
-				//printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
+				printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
 			}
-			//printf("===================\n");
-			//printf("polygons\n");
-			//printf("===================\n");
+			printf("===================\n");
+			printf("polygons\n");
+			printf("===================\n");
 			for (int i = 0; i<this->f_list.size(); i++) {
 				for (int j = 0; j<this->f_list[i].size(); j++) {
-					//printf("%ld ",f_list[i][j]);
+					printf("%ld ",f_list[i][j]);
 				}
-				//printf("\n");
-			}	
-			//printf("\n");	
+				printf("\n");
+			}
+			printf("===================\n");
+			printf("normals\n");
+			printf("===================\n");
+			for (int i = 0 ; i<this->n_list.size(); i++) {
+				printf("%f %f %f\n", n_list[i].x, n_list[i].y, n_list[i].z);
+			}
+
+			printf("\n");
 		}
 
 		void scale(float x, float y, float z) {
@@ -271,6 +293,16 @@ void load_model(std::string path) {
 				}
 				m->add_face(indices);
 			}
+			else if (line[0]=='v' && line[1]=='n') {
+				std::vector<std::string> normal;
+				split(line,normal);
+				m->add_normal(
+					atof(normal[1].c_str()),
+					atof(normal[2].c_str()),
+					atof(normal[3].c_str())
+				);
+			}
+
 		}
 		models.push_back(m);
 		model.close();
@@ -440,6 +472,8 @@ void naive_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* color)  
 
 }
 
+
+
 void draw_line(int s_x, int s_y, int e_x, int e_y, unsigned char* color) {
 	naive_bresenham(s_x,s_y,e_x,e_y,color);
 }
@@ -451,15 +485,19 @@ void draw_rect(float x, float y, float w, float h, unsigned char* color) {
 	draw_line(x,y+h,x,y,color);
 }
 
+float dot3D (struct vector3D v1, struct vector3D v2) {
+	return (v1.x*v2.x)+(v1.y*v2.y)+(v1.z*v2.z);
+}
+
 void render_mesh(Mesh *m, Camera *camera) {
 
 	unsigned char color[4] = {120,120,120,255};
-	std::vector <struct point2D>verts;
+	std::vector <struct vector3D>verts;
 	////printf("==================\n");
 	float sf = 1.0;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.5f;
+	float ty = -0.0f;
 	float tz = -2.0f;
 	m->rotate_y(0.8f);
 	m->translate(tx,ty,tz);
@@ -476,15 +514,15 @@ void render_mesh(Mesh *m, Camera *camera) {
 		//printf("projected points: (%f, %f, %f, %f)\n",x,y,z,w);
 	
 		//NOW IN RASTER SPACE BELOW	
-		struct point2D s = {x/w,y/w,z/w};
+		struct vector3D s = {x/w,y/w,z/w};
 		s.x=(s.x*WIN_WIDTH)+WIN_WIDTH/2;
 		s.y=(-s.y*WIN_HEIGHT)+WIN_HEIGHT/2;
 		verts.push_back(s);
 	}
 	//printf("\n");
 
-	for (struct point2D s: verts) {
-		set_pixel(s.x,s.y,color);
+	for (struct vector3D s: verts) {
+		//set_pixel(s.x,s.y,color);
 	}
 
 	////printf("all verts new\n");
@@ -492,10 +530,11 @@ void render_mesh(Mesh *m, Camera *camera) {
 		////printf("%f %f\n",verts[i].x,verts[i].y);
 	}
 
-	for (int i = 0 ; i<m->polygons(); i++) {
-		for (int j = 0; j<m->f_list[i].size()-1; j++) {
 	
-				
+	for (int i = 0 ; i<m->polygons(); i++) {
+		
+		for (int j = 0; j<m->f_list[i].size()-1; j++) {
+			
 			long sv = m->f_list[i][j];
 			long ev = m->f_list[i][j+1];
 	
@@ -547,11 +586,10 @@ void initialize() {
 	load_model("models/crow.obj");
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
-	load_model("models/KyloRenCommandShuttle.obj");
 
-	selected = 10;
+	selected = 3;
 	models[selected]->normalize();
-	//models[i]->print_mesh();
+	models[selected]->print_mesh();
 	printf("model: %s, polygons: %li, vertices: %li\n",
 		models[selected]->name.c_str(),
 		models[selected]->polygons(),
