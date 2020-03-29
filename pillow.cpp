@@ -9,8 +9,8 @@
 #include <iostream>
 #include <math.h>
 
-#define WIN_WIDTH 1024
-#define WIN_HEIGHT 768
+#define WIN_WIDTH 800
+#define WIN_HEIGHT 600
 #define RESOLUTION 1
 #define WINDOW_TITLE "Pillow"
 
@@ -23,14 +23,23 @@ struct vertex {
 	float w;
 };
 
+struct viewport {
+	float x;
+	float y;
+	float w;
+	float h;
+};
+
 struct point2D {
 	float x;
 	float y;
 	float z;
 };
 
-const float far = -10;
-const float near = -1;
+long selected = 0;
+const struct viewport vp = {150,50,800,600};
+const float far = 10;
+const float near = 1;
 const int fov = 110;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
@@ -104,28 +113,28 @@ class Mesh {
 			this->f_list.push_back(face);
 		}
 
-		long faces() {
+		long polygons() {
 			return f_list.size();
 		}
 
 		void print_mesh() {
 			std::cout<<name<<"\n";
-			printf("===================\n");
-			printf("vertices\n");
-			printf("===================\n");
+			//printf("===================\n");
+			//printf("vertices\n");
+			//printf("===================\n");
 			for (int i = 0 ; i<this->v_list.size(); i++) {
-				printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
+				//printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
 			}
-			printf("===================\n");
-			printf("faces\n");
-			printf("===================\n");
+			//printf("===================\n");
+			//printf("polygons\n");
+			//printf("===================\n");
 			for (int i = 0; i<this->f_list.size(); i++) {
 				for (int j = 0; j<this->f_list[i].size(); j++) {
-					printf("%ld ",f_list[i][j]);
+					//printf("%ld ",f_list[i][j]);
 				}
-				printf("\n");
+				//printf("\n");
 			}	
-			printf("\n");	
+			//printf("\n");	
 		}
 
 		void scale(float x, float y, float z) {
@@ -277,9 +286,9 @@ void clear_buffer() {
 	for (int i = 0; i<WIN_WIDTH; i++) {
 		for (int j = 0; j<WIN_HEIGHT; j++) {
 			buffer[i][j][0]=255;	
-			buffer[i][j][1]=30;
-			buffer[i][j][2]=30;
-			buffer[i][j][3]=30;
+			buffer[i][j][1]=255;
+			buffer[i][j][2]=255;
+			buffer[i][j][3]=255;
 		}
 	}
 }
@@ -303,11 +312,11 @@ void flip_buffer(SDL_Renderer* renderer, SDL_Texture* Frame) {
 
 void set_pixel(int x, int y, unsigned char* color) {
 	if (x<0 || x>=WIN_WIDTH) {
-		////printf("clipped x\n");
+		//////printf("clipped x\n");
 		return;
 	}
 	if (y<0 || y>=WIN_HEIGHT) {
-		////printf("clipped y\n");
+		//////printf("clipped y\n");
 		return;
 	}
 	buffer[x][y][0]=color[3];
@@ -384,36 +393,36 @@ void naive_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* color)  
 	float dydx = (float) dy/dx;	
 	float dxdy = 1/dydx;
 	
-	//printf("gradient %f\n",dydx);
+	////printf("gradient %f\n",dydx);
 	
 	bool debug = false;
 	if ((sx==1024 && sy==0) && (ex==768 && ey==192)) {
 		debug=true;
-		//printf("-=====================================\n");
+		////printf("-=====================================\n");
 	}
 	
-		//printf("drawing line (%i,%i) -> (%i,%i)\n",sx,sy,ex,ey);
+		////printf("drawing line (%i,%i) -> (%i,%i)\n",sx,sy,ex,ey);
 	
 	if (dydx>1 || dydx<-1) {
-			//printf("here===================\n");
+			////printf("here===================\n");
 		if (s_y>e_y){
 			sy=e_y;
 			ey=s_y;
 			sx=e_x;
 		}
-			//printf("starting with (%i,%i)\n",sx,sy);
+			////printf("starting with (%i,%i)\n",sx,sy);
 	
 		float i = (float) sx;
 		for (int j = sy; j<ey; j++) { 
 			set_pixel((int)i,(int)j,color);
-			//printf("%f + %f",i,dxdy);
+			////printf("%f + %f",i,dxdy);
 			i+=dxdy;
-			//printf(" = %f\n",i);
-			//printf("setting pixel (%i,%i)\n",i,j);
+			////printf(" = %f\n",i);
+			////printf("setting pixel (%i,%i)\n",i,j);
 		}
 	}
 	else {
-			//printf("ehere=================\n");
+			////printf("ehere=================\n");
 		if (s_x>e_x){
 			sx=e_x;
 			ex=s_x;
@@ -422,10 +431,10 @@ void naive_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* color)  
 		float j = (float) sy;
 		for (int i = sx; i<ex; i++) {
 			set_pixel((int)i,(int)j,color);
-			//printf("%f + %f",j,dydx);
+			////printf("%f + %f",j,dydx);
 			j+=dydx;
-			//printf(" = %f\n",j);
-			//printf("setting pixel (%i,%i)\n",(int)i,(int)j);
+			////printf(" = %f\n",j);
+			////printf("setting pixel (%i,%i)\n",(int)i,(int)j);
 		}
 	}
 
@@ -435,39 +444,55 @@ void draw_line(int s_x, int s_y, int e_x, int e_y, unsigned char* color) {
 	naive_bresenham(s_x,s_y,e_x,e_y,color);
 }
 
+void draw_rect(float x, float y, float w, float h, unsigned char* color) {
+	draw_line(x,y,x+w,y,color);
+	draw_line(x+w,y,x+w,y+h,color);
+	draw_line(x+w,y+h,x,y+h,color);
+	draw_line(x,y+h,x,y,color);
+}
+
 void render_mesh(Mesh *m, Camera *camera) {
 
 	unsigned char color[4] = {120,120,120,255};
 	std::vector <struct point2D>verts;
-	//printf("==================\n");
-	float sf = 1;
+	////printf("==================\n");
+	float sf = 1.0;
 	m->scale(sf,sf,sf);
-	float transz = -2.0f;
+	float tx = 0.0f;
+	float ty = -0.5f;
+	float tz = -2.0f;
 	m->rotate_y(0.8f);
-	m->translate(0,0,transz);
+	m->translate(tx,ty,tz);
+
 	for (struct vertex v : m->v_list ) {
 				
 		float x = (float) ( v.x * pm[0][0] ) + ( v.y * pm[1][0] ) + ( v.z * pm[2][0] ) + ( v.w * pm[3][0] );
 		float y = (float) ( v.x * pm[0][1] ) + ( v.y * pm[1][1] ) + ( v.z * pm[2][1] ) + ( v.w * pm[3][1] );
 		float z = (float) ( v.x * pm[0][2] ) + ( v.y * pm[1][2] ) + ( v.z * pm[2][2] ) + ( v.w * pm[3][2] );
 		float w = (float) ( v.x * pm[0][3] ) + ( v.y * pm[1][3] ) + ( v.z * pm[2][3] ) + ( v.w * pm[3][3] );
-		//should do clipping at this point apparently	
+		
+		//WILL NEEEEEEED TO PERFORM CLIPPING AND ENCORPORATE INTO LINE DRAWING
+
+		//printf("projected points: (%f, %f, %f, %f)\n",x,y,z,w);
+	
+		//NOW IN RASTER SPACE BELOW	
 		struct point2D s = {x/w,y/w,z/w};
 		s.x=(s.x*WIN_WIDTH)+WIN_WIDTH/2;
 		s.y=(-s.y*WIN_HEIGHT)+WIN_HEIGHT/2;
 		verts.push_back(s);
 	}
+	//printf("\n");
 
 	for (struct point2D s: verts) {
 		set_pixel(s.x,s.y,color);
 	}
 
-	//printf("all verts new\n");
+	////printf("all verts new\n");
 	for (int i = 0; i<verts.size(); i++) {
-		//printf("%f %f\n",verts[i].x,verts[i].y);
+		////printf("%f %f\n",verts[i].x,verts[i].y);
 	}
 
-	for (int i = 0 ; i<m->faces(); i++) {
+	for (int i = 0 ; i<m->polygons(); i++) {
 		for (int j = 0; j<m->f_list[i].size()-1; j++) {
 	
 				
@@ -482,7 +507,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 			draw_line(sx,sy,ex,ey,color);			
 	
 
-			//printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
+			////printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
 		}
 
 		long sv = m->f_list[i][0];	
@@ -496,9 +521,9 @@ void render_mesh(Mesh *m, Camera *camera) {
 		draw_line(sx,sy,ex,ey,color);			
 
 
-		//printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
+		////printf("edge from %ld to %ld - (%f,%f) -> (%f,%f)\n",sv,ev,sx,sy,ex,ey);	
 	}
-	m->translate(0,0,-transz);
+	m->translate(-tx,-ty,-tz);
 	m->scale(1/sf,1/sf,1/sf);
 }
 
@@ -513,11 +538,27 @@ void initialize() {
 	load_model("models/suzanne.obj");
 	load_model("models/camera.obj");
 	load_model("models/Lowpoly_tree_sample.obj");
+	load_model("models/vehicle.obj");
+	load_model("models/Jeep_Renegade_2016.obj");
+	load_model("models/house_plant.obj");
+	load_model("models/boat.obj");
+	load_model("models/casa.obj");
+	load_model("models/well.obj");
+	load_model("models/crow.obj");
+	load_model("models/tank.obj");
+	load_model("models/drill.obj");
+	load_model("models/KyloRenCommandShuttle.obj");
 
-	for (int i = 0; i<models.size(); i++) {
-		models[i]->normalize();
-		models[i]->print_mesh();
-	}
+	selected = 10;
+	models[selected]->normalize();
+	//models[i]->print_mesh();
+	printf("model: %s, polygons: %li, vertices: %li\n",
+		models[selected]->name.c_str(),
+		models[selected]->polygons(),
+		models[selected]->vertices()
+	);
+
+
 	
 }
 
@@ -525,7 +566,7 @@ void render() {
 
 	unsigned char color[4] = {120,120,120,255};
 	unsigned char red[4] = {255,0,0,255};
-	
+
 	//for (int i = 0; i < 10000; i++) {
 	//	draw_line(rand() % WIN_WIDTH,rand() % WIN_HEIGHT,rand() % WIN_WIDTH,rand() % WIN_HEIGHT,color);
 	//}
@@ -534,8 +575,8 @@ void render() {
 	//render_mesh(models[0],cam);	
 	//render_mesh(models[1],cam);	
 	//render_mesh(models[2],cam);	
-	//render_mesh(models[3],cam);	
-	render_mesh(models[6],cam);	
+	render_mesh(models[selected],cam);	
+	//render_mesh(models[6],cam);	
 	//render_mesh(models[5],cam);	
 
 }
