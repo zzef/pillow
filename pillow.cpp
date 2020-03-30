@@ -499,7 +499,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
 	float ty = -0.5f;
-	float tz = -2.5f;
+	float tz = -3.0f;
 	m->rotate_y(0.2f);
 	m->translate(tx,ty,tz);
 
@@ -538,8 +538,8 @@ void render_mesh(Mesh *m, Camera *camera) {
 				float ny = e->y+(t*(s->y-e->y));
 				struct vertex n = {nx,ny,s->w,s->w};
 				struct vertex n1 = {e->x,e->y,e->z,e->w};
-				//new_poly.push_back(n1);
 				new_poly.push_back(n);
+				new_poly.push_back(n1);
 			}
 			else if (s->z<=s->w && e->z>=e->w) {
 				float t = (e->w-s->z)/(e->z-s->z);
@@ -547,14 +547,14 @@ void render_mesh(Mesh *m, Camera *camera) {
 				float ny = s->y+(t*(e->y-s->y));
 				struct vertex n = {nx,ny,e->w,e->w};
 				struct vertex n1 = {s->x,s->y,s->z,s->w};
-				//new_poly.push_back(n1);		
+				new_poly.push_back(n1);		
 				new_poly.push_back(n);
 			}
 			else {
 				struct vertex n = {e->x,e->y,e->z,e->w};
 				struct vertex n1 = {s->x,s->y,s->z,s->w};
-				new_poly.push_back(n1);		
-				new_poly.push_back(n);
+				//new_poly.push_back(n1);
+				new_poly.push_back(n);		
 
 
 			}
@@ -608,7 +608,7 @@ void initialize() {
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
 
-	selected = 14;
+	selected = 3;
 	models[selected]->normalize();
 	models[selected]->print_mesh();
 	printf("model: %s, polygons: %li, vertices: %li\n",
