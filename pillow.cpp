@@ -490,17 +490,63 @@ float dot3D (struct vector3D v1, struct vector3D v2) {
 	return (v1.x*v2.x)+(v1.y*v2.y)+(v1.z*v2.z);
 }
 
+void clip_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
+	std::vector<struct vertex>& clip_coords
+) {	
+	for (int j = 0; j<ply.size()-1; j++) {
+			
+		long sv = ply[j];
+		long ev = ply[j+1];
+	
+		struct vertex* s = &clip_coords[sv-1];
+		struct vertex* e = &clip_coords[ev-1];
+
+		if (s->z>s->w && e->z>e->w)
+			continue;
+
+		// WILL I EVER BE ABLE TO LOOK BACK AT THIS AND UNDERSTAND IT?
+		// PROBABLY NOT. AND THAT IS SAD.
+
+		//Implementation of Liang Barsky line clipping <- (okay this should remind you, otherwise, you're screwed)
+		if (e->z<=e->w && s->z>=s->w) {
+			float t = (s->w-e->z)/(s->z-e->z);
+			float nx = e->x+(t*(s->x-e->x));
+			float ny = e->y+(t*(s->y-e->y));
+			struct vertex n = {nx,ny,s->w,s->w};
+			struct vertex n1 = {e->x,e->y,e->z,e->w};
+			new_poly.push_back(n);
+			new_poly.push_back(n1);
+		}
+		else if (s->z<=s->w && e->z>=e->w) {
+			float t = (e->w-s->z)/(e->z-s->z);
+			float nx = s->x+(t*(e->x-s->x));
+			float ny = s->y+(t*(e->y-s->y));
+			struct vertex n = {nx,ny,e->w,e->w};
+			struct vertex n1 = {s->x,s->y,s->z,s->w};
+			new_poly.push_back(n1);		
+			new_poly.push_back(n);
+		}
+		else {
+			struct vertex n = {e->x,e->y,e->z,e->w};
+			struct vertex n1 = {s->x,s->y,s->z,s->w};
+			new_poly.push_back(n);		
+		}
+
+	}
+
+}
+
 void render_mesh(Mesh *m, Camera *camera) {
 
-	unsigned char color[4] = {120,120,120,255};
+	unsigned char color[4] = {160,160,160,255};
 	std::vector <struct vertex>clip_coords;
 	////printf("==================\n");
-	float sf = 2.0;
+	float sf = 1.8;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.5f;
-	float tz = -3.0f;
-	m->rotate_y(0.2f);
+	float ty = -0.7f;
+	float tz = -3.2f;
+	m->rotate_y(1.0f);
 	m->translate(tx,ty,tz);
 
 	for (struct vertex v : m->v_list ) {
@@ -516,50 +562,8 @@ void render_mesh(Mesh *m, Camera *camera) {
 	}
 
 	for (int i = 0; i<m->polygons(); i++) {
-		std::vector <struct vertex> new_poly;		
-		for (int j = 0; j<m->f_list[i].size()-1; j++) {
-			
-			long sv = m->f_list[i][j];
-			long ev = m->f_list[i][j+1];
-		
-			struct vertex* s = &clip_coords[sv-1];
-			struct vertex* e = &clip_coords[ev-1];
-	
-			if (s->z>s->w && e->z>e->w)
-				continue;
-
-			// WILL I EVER BE ABLE TO LOOK BACK AT THIS AND UNDERSTAND IT?
-			// PROBABLY NOT. AND THAT IS SAD.
-
-			//Implementation of Liang Barsky line clipping <- (okay this should remind you, otherwise, you're screwed)
-			if (e->z<=e->w && s->z>=s->w) {
-				float t = (s->w-e->z)/(s->z-e->z);
-				float nx = e->x+(t*(s->x-e->x));
-				float ny = e->y+(t*(s->y-e->y));
-				struct vertex n = {nx,ny,s->w,s->w};
-				struct vertex n1 = {e->x,e->y,e->z,e->w};
-				new_poly.push_back(n);
-				new_poly.push_back(n1);
-			}
-			else if (s->z<=s->w && e->z>=e->w) {
-				float t = (e->w-s->z)/(e->z-s->z);
-				float nx = s->x+(t*(e->x-s->x));
-				float ny = s->y+(t*(e->y-s->y));
-				struct vertex n = {nx,ny,e->w,e->w};
-				struct vertex n1 = {s->x,s->y,s->z,s->w};
-				new_poly.push_back(n1);		
-				new_poly.push_back(n);
-			}
-			else {
-				struct vertex n = {e->x,e->y,e->z,e->w};
-				struct vertex n1 = {s->x,s->y,s->z,s->w};
-				//new_poly.push_back(n1);
-				new_poly.push_back(n);		
-
-
-			}
-
-		}
+		std::vector <struct vertex> new_poly;
+		clip_polygon(m->f_list[i],new_poly,clip_coords);	
 		if (new_poly.size()<1)
 			continue;
 
@@ -608,7 +612,7 @@ void initialize() {
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
 
-	selected = 3;
+	selected = 8;
 	models[selected]->normalize();
 	models[selected]->print_mesh();
 	printf("model: %s, polygons: %li, vertices: %li\n",
