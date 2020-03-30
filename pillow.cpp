@@ -38,8 +38,8 @@ struct vector3D {
 
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
-const float far = 4;
-const float near = 3;
+const float far = 3.5;
+const float near = 2.5;
 const int fov = 110;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
@@ -289,8 +289,9 @@ void load_model(std::string path) {
 					indices.push_back(atol(index[0].c_str()));
 					index.clear();
 					index.shrink_to_fit();
-					//free ip memory
+					//free up memory
 				}
+				indices.push_back(indices[0]);
 				m->add_face(indices);
 			}
 			else if (line[0]=='v' && line[1]=='n') {
@@ -497,8 +498,8 @@ void render_mesh(Mesh *m, Camera *camera) {
 	float sf = 1.5;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -1.0f;
-	float tz = -3.5f;
+	float ty = -0.5f;
+	float tz = -2.5f;
 	m->rotate_y(0.2f);
 	m->translate(tx,ty,tz);
 
@@ -538,17 +539,13 @@ void render_mesh(Mesh *m, Camera *camera) {
 			//both parts of line outside of box;
 			}
 			else if (ez<=ew && sz>=sw) {
-			
-				
-				float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float sty = (-(sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
 
 				float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
 				float eny = (-(ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
 			
 				float t = (sw-ez)/(sz-ez);
 
-				float nx = ex+t*((sx-ex));
+				float nx = ex+(t*(sx-ex));
 				float ny = ey+(t*(sy-ey));
 		
 				float ntx = ((nx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
@@ -558,8 +555,23 @@ void render_mesh(Mesh *m, Camera *camera) {
 				
 				
 			}
-			else if (sz<sw && ez>ew) {
+			else if (sz<=sw && ez>=ew) {
 				
+				float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float sty = (-(sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+			
+				float t = (ew-sz)/(ez-sz);
+
+				float nx = sx+(t*(ex-sx));
+				float ny = sy+(t*(ey-sy));
+
+				float ntx = ((nx/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
+				float nty = ((-ny/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
+			
+				//draw_line(ntx,nty,0,0,color);
+				draw_line(stx,sty,ntx,nty,color);
+				//draw_line(enx,eny,0,0,color);
+
 			}
 			else {
 					
@@ -573,56 +585,6 @@ void render_mesh(Mesh *m, Camera *camera) {
 
 		}
 		
-		long sv = m->f_list[i][0];	
-		long ev = m->f_list[i][m->f_list[i].size()-1];
-	
-		float sx = clip_coords[sv-1].x;
-		float ex = clip_coords[ev-1].x;
-
-		float sy = clip_coords[sv-1].y;
-		float ey = clip_coords[ev-1].y;
-
-		float sz = clip_coords[sv-1].z;
-		float ez = clip_coords[ev-1].z;
-
-		float sw = clip_coords[sv-1].w;
-		float ew = clip_coords[ev-1].w;
-
-		if (sz>sw && ez>ew) {
-			//both parts of line outside of box;
-		}
-		else if (sz>sw && ez<ew) {
-		
-				float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float sty = (-(sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-
-				float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float eny = (-(ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-			
-				float t = (sw-ez)/(sz-ez);
-
-				float nx = ex+t*((sx-ex));
-				float ny = ey+(t*(sy-ey));
-		
-				float ntx = ((nx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float nty = ((-ny/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-				
-				draw_line(enx,eny,ntx,nty,color);
-				
-		}
-		else if (sz<sw && ez>ew) {
-			
-		}
-		else {
-
-			float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
-			float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
-			float sty = ((-sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-			float eny = ((-ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-
-			draw_line(stx,sty,enx,eny,color);
-		}
-
 	}
 	
 
@@ -651,7 +613,7 @@ void initialize() {
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
 
-	selected = 3;
+	selected = 10;
 	models[selected]->normalize();
 	models[selected]->print_mesh();
 	printf("model: %s, polygons: %li, vertices: %li\n",
