@@ -495,95 +495,90 @@ void render_mesh(Mesh *m, Camera *camera) {
 	unsigned char color[4] = {120,120,120,255};
 	std::vector <struct vertex>clip_coords;
 	////printf("==================\n");
-	float sf = 1.5;
+	float sf = 2.0;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
 	float ty = -0.5f;
-	float tz = -2.5f;
+	float tz = -3.0f;
 	m->rotate_y(0.2f);
 	m->translate(tx,ty,tz);
 
 	for (struct vertex v : m->v_list ) {
-				
+
+		//Applying matrix projection to enter clip space				
 		float x = (float) ( v.x * pm[0][0] ) + ( v.y * pm[1][0] ) + ( v.z * pm[2][0] ) + ( v.w * pm[3][0] );
 		float y = (float) ( v.x * pm[0][1] ) + ( v.y * pm[1][1] ) + ( v.z * pm[2][1] ) + ( v.w * pm[3][1] );
 		float z = (float) ( v.x * pm[0][2] ) + ( v.y * pm[1][2] ) + ( v.z * pm[2][2] ) + ( v.w * pm[3][2] );
-		float w = (float) ( v.x * pm[0][3] ) + ( v.y * pm[1][3] ) + ( v.z * pm[2][3] ) + ( v.w * pm[3][3] );
-		
-		//WILL NEEEEEEED TO PERFORM CLIPPING AND ENCORPORATE INTO LINE DRAWING
-
+		float w = (float) ( v.x * pm[0][3] ) + ( v.y * pm[1][3] ) + ( v.z * pm[2][3] ) + ( v.w * pm[3][3] );	
 		struct vertex c = {x,y,z,w};
 		clip_coords.push_back(c);
 
 	}
 
-	for (int i = 0; i<m->polygons(); i++) {			
+	for (int i = 0; i<m->polygons(); i++) {
+		std::vector <struct vertex> new_poly;		
 		for (int j = 0; j<m->f_list[i].size()-1; j++) {
 			
 			long sv = m->f_list[i][j];
 			long ev = m->f_list[i][j+1];
-	
-			float sx = clip_coords[sv-1].x;
-			float ex = clip_coords[ev-1].x;
-
-			float sy = clip_coords[sv-1].y;
-			float ey = clip_coords[ev-1].y;
-
-			float sz = clip_coords[sv-1].z;
-			float ez = clip_coords[ev-1].z;
-
-			float sw = clip_coords[sv-1].w;
-			float ew = clip_coords[ev-1].w;
-	
-			if (sz>sw && ez>ew) {
-			//both parts of line outside of box;
-			}
-			else if (ez<=ew && sz>=sw) {
-
-				float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float eny = (-(ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-			
-				float t = (sw-ez)/(sz-ez);
-
-				float nx = ex+(t*(sx-ex));
-				float ny = ey+(t*(sy-ey));
 		
-				float ntx = ((nx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float nty = ((-ny/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-					
-				draw_line(enx,eny,ntx,nty,color);
-				
-				
+			struct vertex* s = &clip_coords[sv-1];
+			struct vertex* e = &clip_coords[ev-1];
+	
+			if (s->z>s->w && e->z>e->w)
+				continue;
+
+			// WILL I EVER BE ABLE TO LOOK BACK AT THIS AND UNDERSTAND IT?
+			// PROBABLY NOT. AND THAT IS SAD.
+
+			//Implementation of Liang Barsky line clipping <- (okay this should remind you, otherwise, you're screwed)
+			if (e->z<=e->w && s->z>=s->w) {
+				float t = (s->w-e->z)/(s->z-e->z);
+				float nx = e->x+(t*(s->x-e->x));
+				float ny = e->y+(t*(s->y-e->y));
+				struct vertex n = {nx,ny,s->w,s->w};
+				struct vertex n1 = {e->x,e->y,e->z,e->w};
+				//new_poly.push_back(n1);
+				new_poly.push_back(n);
 			}
-			else if (sz<=sw && ez>=ew) {
-				
-				float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float sty = (-(sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-			
-				float t = (ew-sz)/(ez-sz);
-
-				float nx = sx+(t*(ex-sx));
-				float ny = sy+(t*(ey-sy));
-
-				float ntx = ((nx/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float nty = ((-ny/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-			
-				//draw_line(ntx,nty,0,0,color);
-				draw_line(stx,sty,ntx,nty,color);
-				//draw_line(enx,eny,0,0,color);
-
+			else if (s->z<=s->w && e->z>=e->w) {
+				float t = (e->w-s->z)/(e->z-s->z);
+				float nx = s->x+(t*(e->x-s->x));
+				float ny = s->y+(t*(e->y-s->y));
+				struct vertex n = {nx,ny,e->w,e->w};
+				struct vertex n1 = {s->x,s->y,s->z,s->w};
+				//new_poly.push_back(n1);		
+				new_poly.push_back(n);
 			}
 			else {
-					
-				float stx = ((sx/sw)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float enx = ((ex/ew)*WIN_WIDTH)+(WIN_WIDTH/2);
-				float sty = ((-sy/sw)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-				float eny = ((-ey/ew)*WIN_HEIGHT)+(WIN_HEIGHT/2);
-				
-				draw_line(stx,sty,enx,eny,color);
+				struct vertex n = {e->x,e->y,e->z,e->w};
+				struct vertex n1 = {s->x,s->y,s->z,s->w};
+				new_poly.push_back(n1);		
+				new_poly.push_back(n);
+
+
 			}
 
 		}
+		if (new_poly.size()<1)
+			continue;
+
+		//PERSPECTIVE DIVID HERE
+		new_poly.push_back(new_poly[0]);
+		for (int k = 0; k<new_poly.size()-1; k++) {
+		
+			struct vertex v = new_poly[k];
+			struct vertex v1 = new_poly[k+1];
+			
+			float sx = (v.x/v.w)*WIN_WIDTH + (WIN_WIDTH/2);
+			float sy = (-v.y/v.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
+	
+			float ex = (v1.x/v1.w)*WIN_WIDTH + (WIN_WIDTH/2);
+			float ey = (-v1.y/v1.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
+				
+			draw_line(sx,sy,ex,ey,color);
+		}
+	
 		
 	}
 	
@@ -613,7 +608,7 @@ void initialize() {
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
 
-	selected = 10;
+	selected = 14;
 	models[selected]->normalize();
 	models[selected]->print_mesh();
 	printf("model: %s, polygons: %li, vertices: %li\n",
