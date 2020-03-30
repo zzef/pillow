@@ -499,7 +499,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
 	float ty = -0.5f;
-	float tz = -3.0f;
+	float tz = -2.5f;
 	m->rotate_y(0.2f);
 	m->translate(tx,ty,tz);
 
