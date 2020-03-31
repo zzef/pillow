@@ -9,8 +9,8 @@
 #include <iostream>
 #include <math.h>
 
-#define WIN_WIDTH 800
-#define WIN_HEIGHT 600
+#define WIN_WIDTH 1024
+#define WIN_HEIGHT 768
 #define RESOLUTION 1
 #define WINDOW_TITLE "Pillow"
 
@@ -36,6 +36,7 @@ struct vector3D {
 	float z;
 };
 
+bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
 const float far = 3.5;
@@ -319,9 +320,9 @@ void clear_buffer() {
 	for (int i = 0; i<WIN_WIDTH; i++) {
 		for (int j = 0; j<WIN_HEIGHT; j++) {
 			buffer[i][j][0]=255;	
-			buffer[i][j][1]=255;
-			buffer[i][j][2]=255;
-			buffer[i][j][3]=255;
+			buffer[i][j][1]=200;
+			buffer[i][j][2]=200;
+			buffer[i][j][3]=200;
 		}
 	}
 }
@@ -501,6 +502,12 @@ void clip_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly,
 		struct vertex* s = &clip_coords[sv-1];
 		struct vertex* e = &clip_coords[ev-1];
 
+		if (no_clipping) {
+			struct vertex n = {e->x,e->y,e->z,e->w};
+			struct vertex n1 = {s->x,s->y,s->z,s->w};
+			new_poly.push_back(n);		
+			continue;
+		}
 		if (s->z>s->w && e->z>e->w)
 			continue;
 
@@ -538,14 +545,14 @@ void clip_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly,
 
 void render_mesh(Mesh *m, Camera *camera) {
 
-	unsigned char color[4] = {160,160,160,255};
+	unsigned char color[4] = {120,120,120,255};
 	std::vector <struct vertex>clip_coords;
 	////printf("==================\n");
-	float sf = 1.8;
+	float sf = 1.6;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.7f;
-	float tz = -3.2f;
+	float ty = -0.6f;
+	float tz = -3.0f;
 	m->rotate_y(1.0f);
 	m->translate(tx,ty,tz);
 
@@ -612,7 +619,7 @@ void initialize() {
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
 
-	selected = 8;
+	selected = 10;
 	models[selected]->normalize();
 	models[selected]->print_mesh();
 	printf("model: %s, polygons: %li, vertices: %li\n",
