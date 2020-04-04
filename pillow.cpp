@@ -97,6 +97,30 @@ class Mesh {
 			}
 		}
 
+		void triangulate() {
+			//assumes that all polygons are concave.	
+			std::vector<std::vector<long>> tf_list;
+			for (int i = 0; i<polygons(); i++) {
+				if (f_list[i].size()>4) {
+					for (int j = 1; j<f_list[i].size()-2; j++) {
+						std::vector<long> v;
+						long v0 = f_list[i][0];
+						long v1 = f_list[i][j];
+						long v2 = f_list[i][j+1];
+						v.push_back(v0);
+						v.push_back(v1);
+						v.push_back(v2);
+						v.push_back(v0);
+						tf_list.push_back(v);
+					}
+				}
+				else {
+					tf_list.push_back(f_list[i]);
+				}
+			}
+			f_list=tf_list;
+		}
+
 		void normalize() {
 			this->update_max();
 			for (long i = 0; i<this->vertices(); i++) {
@@ -494,8 +518,8 @@ float dot3D (struct vector3D v1, struct vector3D v2) {
 void clip_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
 	std::vector<struct vertex>& clip_coords
 ) {	
-	for (int j = 0; j<ply.size()-1; j++) {
-			
+	for (int j = 0; j<ply.size()-1; j++) {	
+	
 		long sv = ply[j];
 		long ev = ply[j+1];
 	
@@ -529,19 +553,35 @@ void clip_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly,
 			float nx = s->x+(t*(e->x-s->x));
 			float ny = s->y+(t*(e->y-s->y));
 			struct vertex n = {nx,ny,e->w,e->w};
-			struct vertex n1 = {s->x,s->y,s->z,s->w};
-			new_poly.push_back(n1);		
+			//struct vertex n1 = {s->x,s->y,s->z,s->w};
+			//new_poly.push_back(n1);		
 			new_poly.push_back(n);
 		}
 		else {
 			struct vertex n = {e->x,e->y,e->z,e->w};
-			struct vertex n1 = {s->x,s->y,s->z,s->w};
+			//struct vertex n1 = {s->x,s->y,s->z,s->w};
 			new_poly.push_back(n);		
 		}
 
 	}
 
+	new_poly.push_back(new_poly[0]);
+
 }
+
+void get_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
+	std::vector<struct vertex>& clip_coords
+) {	
+	for (int j = 0; j<ply.size(); j++) {
+	
+		long sv = ply[j];	
+		struct vertex* s = &clip_coords[sv-1];
+		struct vertex n = {s->x,s->y,s->z,s->w};
+		new_poly.push_back(n);		
+		
+	}
+	
+}	
 
 void render_mesh(Mesh *m, Camera *camera) {
 
@@ -552,7 +592,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
 	float ty = -0.6f;
-	float tz = -3.0f;
+	float tz = -3.5f;
 	m->rotate_y(1.0f);
 	m->translate(tx,ty,tz);
 
@@ -570,12 +610,12 @@ void render_mesh(Mesh *m, Camera *camera) {
 
 	for (int i = 0; i<m->polygons(); i++) {
 		std::vector <struct vertex> new_poly;
-		clip_polygon(m->f_list[i],new_poly,clip_coords);	
+		get_polygon(m->f_list[i],new_poly,clip_coords);	
 		if (new_poly.size()<1)
 			continue;
 
-		//PERSPECTIVE DIVID HERE
-		new_poly.push_back(new_poly[0]);
+		//PERSPECTIVE DIVIDE HERE
+		//RASTER SPACE
 		for (int k = 0; k<new_poly.size()-1; k++) {
 		
 			struct vertex v = new_poly[k];
@@ -587,10 +627,11 @@ void render_mesh(Mesh *m, Camera *camera) {
 			float ex = (v1.x/v1.w)*WIN_WIDTH + (WIN_WIDTH/2);
 			float ey = (-v1.y/v1.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
 				
+			//printf("(%f,%f) -> (%f,%f)\n",sx,sy,ex,ey);
+
 			draw_line(sx,sy,ex,ey,color);
-		}
-	
-		
+			//printf("drawing line between (%f,%f) and (%f,%f)\n",sx,sy,ex,ey);
+		}	
 	}
 	
 
@@ -621,6 +662,7 @@ void initialize() {
 
 	selected = 10;
 	models[selected]->normalize();
+	models[selected]->triangulate();
 	models[selected]->print_mesh();
 	printf("model: %s, polygons: %li, vertices: %li\n",
 		models[selected]->name.c_str(),
