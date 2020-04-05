@@ -1,8 +1,9 @@
 #include "SDL2/SDL.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include <time.h>
 #include <vector>
+#include <array>
+#include <time.h>
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -23,6 +24,17 @@ struct vertex {
 	float w;
 };
 
+struct Color {
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+};
+
+struct edge_pixel {	
+	int x;
+	struct Color c;
+};
+
 struct viewport {
 	float x;
 	float y;
@@ -39,8 +51,8 @@ struct vector3D {
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
-const float far = 3.5;
-const float near = 2.5;
+const float far = 10;
+const float near = 1;
 const int fov = 110;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
@@ -77,6 +89,7 @@ class Mesh {
 	
 		std::vector<struct vertex> v_list;
 		std::vector<std::vector<long>> f_list;
+		std::vector<std::vector<long>> tf_list;
 		std::vector<struct vector3D> n_list;
 		std::string name;
 		float max = 1;		
@@ -98,9 +111,8 @@ class Mesh {
 		}
 
 		void triangulate() {
-			//assumes that all polygons are concave.	
-			std::vector<std::vector<long>> tf_list;
-			for (int i = 0; i<polygons(); i++) {
+			//assumes that all triangles are concave.	
+			for (int i = 0; i<this->polygons(); i++) {
 				if (f_list[i].size()>4) {
 					for (int j = 1; j<f_list[i].size()-2; j++) {
 						std::vector<long> v;
@@ -111,14 +123,13 @@ class Mesh {
 						v.push_back(v1);
 						v.push_back(v2);
 						v.push_back(v0);
-						tf_list.push_back(v);
+						this->tf_list.push_back(v);
 					}
 				}
 				else {
 					tf_list.push_back(f_list[i]);
 				}
 			}
-			f_list=tf_list;
 		}
 
 		void normalize() {
@@ -157,6 +168,11 @@ class Mesh {
 			return f_list.size();
 		}
 
+
+		long triangles() {
+			return tf_list.size();
+		}
+
 		void print_mesh() {
 			std::cout<<name<<"\n";
 			printf("===================\n");
@@ -166,7 +182,7 @@ class Mesh {
 				printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
 			}
 			printf("===================\n");
-			printf("polygons\n");
+			printf("triangles\n");
 			printf("===================\n");
 			for (int i = 0; i<this->f_list.size(); i++) {
 				for (int j = 0; j<this->f_list[i].size(); j++) {
@@ -344,9 +360,9 @@ void clear_buffer() {
 	for (int i = 0; i<WIN_WIDTH; i++) {
 		for (int j = 0; j<WIN_HEIGHT; j++) {
 			buffer[i][j][0]=255;	
-			buffer[i][j][1]=200;
-			buffer[i][j][2]=200;
-			buffer[i][j][3]=200;
+			buffer[i][j][1]=30;
+			buffer[i][j][2]=30;
+			buffer[i][j][3]=30;
 		}
 	}
 }
@@ -383,61 +399,95 @@ void set_pixel(int x, int y, unsigned char* color) {
 	buffer[x][y][3]=color[0];
 }
 
-void optimized_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* color)  {
+void get_pairs(std::vector<struct vector3D> poly_r,
+ 	std::vector <std::vector<struct edge_pixel>>& edges,
+	std::vector<struct Color> v_a, int min
+) {
 
-	int sx = s_x;
-	int sy = s_y;
-	int ex = e_x; 
-	int ey = e_y;
+	for (int k = 0; k<poly_r.size()-1; k++) {
 
-	int dy = ey-sy;
-	int dx = ex-sx;
+		unsigned char r = v_a[k].r;
+		unsigned char g = v_a[k].g;
+		unsigned char b = v_a[k].b;
 
-	if (abs(dy)>abs(dx)) {
-		if (s_y>e_y){
-			sy=e_y;
-			ey=s_y;
-			sx=e_x;
+		unsigned char r1 = v_a[k+1].r;
+		unsigned char g1 = v_a[k+1].g;
+		unsigned char b1 = v_a[k+1].b;
+
+		int s_x = (int) poly_r[k].x;
+		int s_y = (int) poly_r[k].y;
+		int e_x = (int) poly_r[k+1].x; 
+		int e_y = (int) poly_r[k+1].y;
+
+		int sx = (int) s_x;
+		int sy = (int) s_y;
+		int ex = (int) e_x; 
+		int ey = (int) e_y;
+
+		float dy = (float) ey-sy;
+		float dx = (float) ex-sx;
+		float dydx = (float) dy/dx;	
+		float dxdy = 1/dydx;
+		float abdy = abs(dy);
+		float abdx = abs(dx);	
+	
+		if (dydx>1 || dydx<-1) {
+			
+			float r_inc = (r1-r)/dy;
+			float g_inc = (g1-g)/dy;
+			float b_inc = (b1-b)/dy;
+		
+			if (s_y>e_y){
+				sy=e_y;
+				ey=s_y;
+				sx=e_x;
+			}
+		
+			float i = (float) sx;
+			int inc = 0;
+			for (int j = sy; j<ey; j++) {
+				struct Color col = {
+					r+(inc*r_inc),
+					g+(inc*g_inc),
+					b+(inc*b_inc)
+				};
+				struct edge_pixel n = {(int) i, col};
+				edges[(int)(j-min)].push_back(n);	
+				unsigned char c[4] = {col.r,col.g,col.b,255};
+				set_pixel((int)i,(int)j,c);
+				i+=dxdy;
+				inc++;
+			}
 		}
+		else {
 
-		int threshold = dy;
-		int threshold_inc = dy*2;
-		int delta = dx*2;
-		int i = sx;
-		int accum = 0;
-		for (int j = sy; j<ey; j++) {
-			set_pixel(i,j,color);
-			accum+=delta;
-			if (accum>=threshold) {
-				i++;
-				threshold+=threshold_inc;
+			float r_inc = (r1-r)/dx;
+			float g_inc = (g1-g)/dx;
+			float b_inc = (b1-b)/dx;
+		
+			if (s_x>e_x){
+				sx=e_x;
+				ex=s_x;
+				sy=e_y;
+			}
+			float j = (float) sy;
+			int inc = 0;
+			for (int i = sx; i<ex; i++) {
+				struct Color col = {
+					r+(inc*r_inc),
+					g+(inc*g_inc),
+					b+(inc*b_inc)
+				};
+				struct edge_pixel n = {(int) i,col};
+				edges[(int)(j-min)].push_back(n);	
+				unsigned char c[4] = {col.r,col.g,col.b,255};
+				set_pixel((int)i,(int)j,c);
+				j+=dydx;
+				inc++;
 			}
 		}
 	}
-	else {
-		if (s_x>e_x){
-			sx=e_x;
-			ex=s_x;
-			sy=e_y;
-		}
-
-		int threshold = dx;
-		int threshold_inc = dx*2;
-		int delta = dy*2;
-		int j = sy;
-		int accum = 0;
-		for (int i = sx; i<ex; i++) {
-			set_pixel(i,j,color);
-			accum+=delta;
-			if (accum>=threshold) {
-				j++;
-				threshold+=threshold_inc;
-			}
-		}
-	}
-
 }
-
 
 void naive_bresenham(int s_x, int s_y, int e_x, int e_y, unsigned char* color)  {
 
@@ -515,7 +565,7 @@ float dot3D (struct vector3D v1, struct vector3D v2) {
 	return (v1.x*v2.x)+(v1.y*v2.y)+(v1.z*v2.z);
 }
 
-void clip_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
+void clip_triangle(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
 	std::vector<struct vertex>& clip_coords
 ) {	
 	for (int j = 0; j<ply.size()-1; j++) {	
@@ -569,7 +619,7 @@ void clip_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly,
 
 }
 
-void get_polygon(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
+void get_triangle(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
 	std::vector<struct vertex>& clip_coords
 ) {	
 	for (int j = 0; j<ply.size(); j++) {
@@ -591,9 +641,9 @@ void render_mesh(Mesh *m, Camera *camera) {
 	float sf = 1.6;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.6f;
-	float tz = -3.5f;
-	m->rotate_y(1.0f);
+	float ty = -0.75f;
+	float tz = -2.1f;
+	m->rotate_y(2.0f);
 	m->translate(tx,ty,tz);
 
 	for (struct vertex v : m->v_list ) {
@@ -608,30 +658,104 @@ void render_mesh(Mesh *m, Camera *camera) {
 
 	}
 
-	for (int i = 0; i<m->polygons(); i++) {
+	for (int i = 0; i<m->triangles(); i++) {
 		std::vector <struct vertex> new_poly;
-		get_polygon(m->f_list[i],new_poly,clip_coords);	
+		get_triangle(m->tf_list[i],new_poly,clip_coords);	
 		if (new_poly.size()<1)
 			continue;
 
+		std::vector <struct vector3D> poly_r;		
 		//PERSPECTIVE DIVIDE HERE
-		//RASTER SPACE
-		for (int k = 0; k<new_poly.size()-1; k++) {
-		
-			struct vertex v = new_poly[k];
-			struct vertex v1 = new_poly[k+1];
+		int max = 0;
+		int min = 100000000;
+		for (int k = 0; k<new_poly.size(); k++) {
 			
+			struct vertex v = new_poly[k];
 			float sx = (v.x/v.w)*WIN_WIDTH + (WIN_WIDTH/2);
 			float sy = (-v.y/v.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-	
-			float ex = (v1.x/v1.w)*WIN_WIDTH + (WIN_WIDTH/2);
-			float ey = (-v1.y/v1.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-				
-			//printf("(%f,%f) -> (%f,%f)\n",sx,sy,ex,ey);
+			
+			struct vector3D r1 = {(v.x/v.w)*WIN_WIDTH + (WIN_WIDTH/2),(-v.y/v.w)*WIN_HEIGHT + (WIN_HEIGHT/2),v.z};
+			poly_r.push_back(r1);
 
-			draw_line(sx,sy,ex,ey,color);
+			if (sy>max) {
+				max = sy;
+			}
+			if (sy<min) {
+				min = sy;
+			}
+
+			//printf("(%f,%f) -> (%f,%f)\n",sx,sy,ex,ey);
 			//printf("drawing line between (%f,%f) and (%f,%f)\n",sx,sy,ex,ey);
+
 		}	
+	
+
+	
+		//RASTER SPACE
+		std::vector <struct Color> vertex_attributes = {
+			{255,0,0},
+			{0,255,0},
+			{0,0,255},
+			{255,0,0},
+		};
+	
+		const int range = max-min;	
+		std::vector <std::vector<struct edge_pixel>> pairs(range+1);
+		get_pairs(poly_r,pairs,vertex_attributes,min);
+		for (int j = 0; j<poly_r.size()-1; j++) {
+			struct vector3D v = poly_r[j];
+			struct vector3D v1 = poly_r[j+1];
+			//draw_line(v.x,v.y,v1.x,v1.y,color);
+		}
+
+		for (int l = 0; l<range; l++) {
+			std::vector<struct edge_pixel> s = pairs[l];
+			
+			if (s.size() < 1) {
+				continue;
+			}
+			int yval = l+min;
+			for (int m = 0; m<s.size(); m++) {
+
+				int first = s[m].x;
+				int last = s[s.size()-1].x;
+				
+				if (first > last) {
+					int temp = first;
+					first = last;
+					last = temp;
+				}
+				
+				int startr = s[m].c.r;			
+				int startg = s[m].c.g;			
+				int startb = s[m].c.b;			
+
+				if (last-first <1)
+					continue;
+
+				int r_inc = (int) (s[s.size()-1].c.r - s[m].c.r)/(last-first);
+				int g_inc = (int) (s[s.size()-1].c.g - s[m].c.g)/(last-first);
+				int b_inc = (int) (s[s.size()-1].c.b - s[m].c.b)/(last-first);
+				
+				for (int n = first; n<last; n++) {
+				
+					
+					unsigned char r = startr+(r_inc*(n-first));
+					unsigned char g = startg+(g_inc*(n-first));
+					unsigned char b = startb+(b_inc*(n-first));
+
+					unsigned char color[4] = {
+						r,g,b,255
+					};
+				
+					set_pixel(n,yval,color);
+				}
+
+			}
+			
+			//struct edge_pixel x2 = pairs[i][pairs[i].size()-1];
+		}	
+	
 	}
 	
 
@@ -660,13 +784,13 @@ void initialize() {
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
 
-	selected = 10;
+	selected = 8;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
-	printf("model: %s, polygons: %li, vertices: %li\n",
+	printf("model: %s, triangles: %li, vertices: %li\n",
 		models[selected]->name.c_str(),
-		models[selected]->polygons(),
+		models[selected]->triangles(),
 		models[selected]->vertices()
 	);
 
