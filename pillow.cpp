@@ -83,6 +83,47 @@ class Camera {
 	
 };
 
+class Vec3 {
+
+	public:
+		float x;
+		float y;
+		float z;
+		
+		Vec3(float x, float y, float z) {
+			this->x=x;
+			this->y=y;
+			this->z=z;
+		}
+
+		Vec3* cross(Vec3 *v) {
+			
+			Vec3 *n = new Vec3(
+				(this->y * v->z) - (this->z * v->y),
+				(this->z * v->x) - (this->x * v->z),
+				(this->x * v->y) - (this->y * v->x)
+			); 	
+			return n;	
+			
+		}
+
+		Vec3* res(Vec3 *v) {
+			
+			Vec3 *n = new Vec3(
+				v->x-this->x,
+				v->y-this->y,
+				v->z-this->z
+			);
+			return n;
+	
+		}		
+
+		float dot(Vec3 *v) {
+			return (this->x*v->x) + (this->y*v->y) + (this->z*v->z);
+		}
+
+};
+
 class Mesh {
 
 	public:
@@ -360,9 +401,9 @@ void clear_buffer() {
 	for (int i = 0; i<WIN_WIDTH; i++) {
 		for (int j = 0; j<WIN_HEIGHT; j++) {
 			buffer[i][j][0]=255;	
-			buffer[i][j][1]=30;
-			buffer[i][j][2]=30;
-			buffer[i][j][3]=30;
+			buffer[i][j][1]=200;
+			buffer[i][j][2]=200;
+			buffer[i][j][3]=200;
 		}
 	}
 }
@@ -619,15 +660,15 @@ void clip_triangle(std::vector<long>& ply, std::vector<struct vertex> &new_poly,
 
 }
 
-void get_triangle(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
+void get_triangle(std::vector<long>& ply, std::vector<struct vertex*> &new_poly, 
 	std::vector<struct vertex>& clip_coords
 ) {	
 	for (int j = 0; j<ply.size(); j++) {
 	
 		long sv = ply[j];	
 		struct vertex* s = &clip_coords[sv-1];
-		struct vertex n = {s->x,s->y,s->z,s->w};
-		new_poly.push_back(n);		
+		//get normal here and put it inside;
+		new_poly.push_back(s);		
 		
 	}
 	
@@ -641,9 +682,9 @@ void render_mesh(Mesh *m, Camera *camera) {
 	float sf = 1.6;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.75f;
-	float tz = -2.1f;
-	m->rotate_y(2.0f);
+	float ty = -0.3f;
+	float tz = -2.5f;
+	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
 	for (struct vertex v : m->v_list ) {
@@ -659,22 +700,43 @@ void render_mesh(Mesh *m, Camera *camera) {
 	}
 
 	for (int i = 0; i<m->triangles(); i++) {
-		std::vector <struct vertex> new_poly;
+		std::vector <struct vertex*> new_poly;
 		get_triangle(m->tf_list[i],new_poly,clip_coords);	
+		//check dot product of camera to normal here and continue if negative
+		
 		if (new_poly.size()<1)
 			continue;
 
+		struct vertex v0 = *new_poly[0];
+		struct vertex v1 = *new_poly[1];
+		struct vertex v2 = *new_poly[2];
+
+		Vec3 *vec0 = new Vec3(v0.x,v0.y,v0.w);
+		Vec3 *vec1 = new Vec3(v1.x,v1.y,v1.w);
+		Vec3 *vec2 = new Vec3(v2.x,v2.y,v2.w);
+
+		Vec3 *res1 = vec0->res(vec1);
+		Vec3 *res2 = vec0->res(vec2);
+
+		Vec3 *f_norm = res1->cross(res2);	
+		
+		Vec3 *vec4 = new Vec3(0,0,0);
+		Vec3 *diff = vec4->res(vec0);
+
+		if (f_norm->dot(diff)<0) 
+			continue;
+	
 		std::vector <struct vector3D> poly_r;		
 		//PERSPECTIVE DIVIDE HERE
 		int max = 0;
 		int min = 100000000;
 		for (int k = 0; k<new_poly.size(); k++) {
 			
-			struct vertex v = new_poly[k];
-			float sx = (v.x/v.w)*WIN_WIDTH + (WIN_WIDTH/2);
-			float sy = (-v.y/v.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
+			struct vertex *v = new_poly[k];
+			float sx = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
+			float sy = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
 			
-			struct vector3D r1 = {(v.x/v.w)*WIN_WIDTH + (WIN_WIDTH/2),(-v.y/v.w)*WIN_HEIGHT + (WIN_HEIGHT/2),v.z};
+			struct vector3D r1 = {(v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2),(-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2),v->z};
 			poly_r.push_back(r1);
 
 			if (sy>max) {
@@ -688,26 +750,18 @@ void render_mesh(Mesh *m, Camera *camera) {
 			//printf("drawing line between (%f,%f) and (%f,%f)\n",sx,sy,ex,ey);
 
 		}	
-	
-
-	
+		
 		//RASTER SPACE
 		std::vector <struct Color> vertex_attributes = {
-			{255,0,0},
-			{0,255,0},
-			{0,0,255},
-			{255,0,0},
+			{180,180,180},
+			{180,180,180},
+			{180,180,180},
+			{180,180,180}
 		};
 	
 		const int range = max-min;	
 		std::vector <std::vector<struct edge_pixel>> pairs(range+1);
 		get_pairs(poly_r,pairs,vertex_attributes,min);
-		for (int j = 0; j<poly_r.size()-1; j++) {
-			struct vector3D v = poly_r[j];
-			struct vector3D v1 = poly_r[j+1];
-			//draw_line(v.x,v.y,v1.x,v1.y,color);
-		}
-
 		for (int l = 0; l<range; l++) {
 			std::vector<struct edge_pixel> s = pairs[l];
 			
@@ -754,8 +808,14 @@ void render_mesh(Mesh *m, Camera *camera) {
 			}
 			
 			//struct edge_pixel x2 = pairs[i][pairs[i].size()-1];
-		}	
-	
+		}
+
+		//for wireframe
+		for (int j = 0; j<poly_r.size()-1; j++) {
+			struct vector3D v = poly_r[j];
+			struct vector3D v1 = poly_r[j+1];
+			draw_line(v.x,v.y,v1.x,v1.y,color);
+		}
 	}
 	
 
@@ -784,7 +844,7 @@ void initialize() {
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
 
-	selected = 8;
+	selected = 5;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
