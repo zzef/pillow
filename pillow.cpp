@@ -454,7 +454,6 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				struct edge_pixel n = {(int) i, col};
 				edges[(int)(j-min)].push_back(n);	
 				unsigned char c[4] = {col.r,col.g,col.b,255};
-				set_pixel((int)i,(int)j,c);
 				i+=dxdy;
 				inc++;
 			}
@@ -481,7 +480,6 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				struct edge_pixel n = {(int) i,col};
 				edges[(int)(j-min)].push_back(n);	
 				unsigned char c[4] = {col.r,col.g,col.b,255};
-				set_pixel((int)i,(int)j,c);
 				j+=dydx;
 				inc++;
 			}
@@ -638,12 +636,12 @@ void render_mesh(Mesh *m, Camera *camera) {
 	unsigned char color[4] = {120,120,120,255};
 	std::vector <struct vertex>clip_coords;
 	////printf("==================\n");
-	float sf = 1.6;
+	float sf = 1.2;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.75f;
-	float tz = -2.1f;
-	m->rotate_y(2.0f);
+	float ty = -0.25f;
+	float tz = -1.8f;
+	m->rotate_y(1.4f);
 	m->translate(tx,ty,tz);
 
 	for (struct vertex v : m->v_list ) {
@@ -674,7 +672,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 			float sx = (v.x/v.w)*WIN_WIDTH + (WIN_WIDTH/2);
 			float sy = (-v.y/v.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
 			
-			struct vector3D r1 = {(v.x/v.w)*WIN_WIDTH + (WIN_WIDTH/2),(-v.y/v.w)*WIN_HEIGHT + (WIN_HEIGHT/2),v.z};
+			struct vector3D r1 = {(v.x/v.w)*WIN_WIDTH + (WIN_WIDTH/2),(-v.y/v.w)*WIN_HEIGHT + (WIN_HEIGHT/2),v.z/v.w};
 			poly_r.push_back(r1);
 
 			if (sy>max) {
@@ -693,20 +691,21 @@ void render_mesh(Mesh *m, Camera *camera) {
 	
 		//RASTER SPACE
 		std::vector <struct Color> vertex_attributes = {
-			{255,0,0},
-			{0,255,0},
-			{0,0,255},
-			{255,0,0},
+			{200,200,200},
+			{200,200,200},
+			{200,200,200},
+			{200,200,200},
 		};
 	
 		const int range = max-min;	
 		std::vector <std::vector<struct edge_pixel>> pairs(range+1);
 		get_pairs(poly_r,pairs,vertex_attributes,min);
-		for (int j = 0; j<poly_r.size()-1; j++) {
-			struct vector3D v = poly_r[j];
-			struct vector3D v1 = poly_r[j+1];
-			//draw_line(v.x,v.y,v1.x,v1.y,color);
-		}
+		
+		//for (int j = 0; j<poly_r.size()-1; j++) {
+		//	struct vector3D v = poly_r[j];
+		//	struct vector3D v1 = poly_r[j+1];
+		//	//draw_line(v.x,v.y,v1.x,v1.y,color);
+		//}
 
 		for (int l = 0; l<range; l++) {
 			std::vector<struct edge_pixel> s = pairs[l];
@@ -747,14 +746,19 @@ void render_mesh(Mesh *m, Camera *camera) {
 					unsigned char color[4] = {
 						r,g,b,255
 					};
-				
 					set_pixel(n,yval,color);
 				}
 
 			}
 			
 			//struct edge_pixel x2 = pairs[i][pairs[i].size()-1];
-		}	
+		}
+
+		for (int j = 0; j<poly_r.size()-1; j++) {
+			struct vector3D v = poly_r[j];
+			struct vector3D v1 = poly_r[j+1];
+			draw_line(v.x,v.y,v1.x,v1.y,color);
+		}
 	
 	}
 	
@@ -784,7 +788,7 @@ void initialize() {
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
 
-	selected = 8;
+	selected = 5;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
