@@ -402,7 +402,7 @@ float depth_buffer[WIN_WIDTH][WIN_HEIGHT];
 void clear_buffer() {
 	for (int i = 0; i<WIN_WIDTH; i++) {
 		for (int j = 0; j<WIN_HEIGHT; j++) {
-			depth_buffer[i][j]=10000000;	
+			depth_buffer[i][j]=10000000000;	
 		}
 	}
 
@@ -445,7 +445,6 @@ void set_pixel(int x, int y, unsigned char* color,float depth) {
 	}
 
 	float d = depth_buffer[x][y];
-	//printf("comparing %f with %f\n",d,depth);
 	if (depth<d) {
 		depth_buffer[x][y]=depth;
 	}
@@ -461,7 +460,7 @@ void set_pixel(int x, int y, unsigned char* color,float depth) {
 
 void get_pairs(std::vector<struct vector3D> poly_r,
  	std::vector <std::vector<struct edge_pixel>>& edges,
-	std::vector<struct Color> v_a, int min
+	std::vector<struct Color> v_a, int min,int minx
 ) {
 
 	for (int k = 0; k<poly_r.size()-1; k++) {
@@ -481,10 +480,10 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 		float e_y = poly_r[k+1].y;
 		float e_z = poly_r[k+1].z;
 
-		int sx = (int) s_x;
-		int sy = (int) s_y;
-		int ex = (int) e_x; 
-		int ey = (int) e_y;
+		float sx = s_x;
+		float sy = s_y;
+		float ex = e_x; 
+		float ey = e_y;
 		float sz = s_z; 
 		float ez = e_z;
 
@@ -492,7 +491,7 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 		float dx = (float) ex-sx;
 		float dydx = (float) dy/dx;	
 		float dxdy = 1/dydx;
-	
+
 		if (dydx>1 || dydx<-1) {
 			
 			float r_inc = (r1-r)/dy;
@@ -510,7 +509,7 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 		
 			float i = (float) sx;
 			int inc = 0;
-			for (int j = sy; j<ey; j++) {
+			for (float j = sy; j<ey; j++) {
 				struct Color col = {
 					r+(inc*r_inc),
 					g+(inc*g_inc),
@@ -518,9 +517,20 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				};
 				float depth = sz+((j-sy)*z_inc);
 				struct edge_pixel n = {i, col,depth};
-				edges[(int)(j-min)].push_back(n);	
+				edges[(int)(j-min)][(int)(i-minx)]=n;	
 				unsigned char c[4] = {43,107,100,255};
-				set_pixel((int)i,(int)j,c,(1/depth));
+
+				/*printf("sy %f\n",sy);
+				printf("ey %f\n",ey);
+				printf("ez %f\n",ez);
+				printf("sz %f\n",sz);
+				printf("j %f\n",j);
+				printf("sy %f\n",sy);
+				printf("z_inc %f\n",z_inc);
+				printf("1/depth %f\n",1/depth);
+				printf("depth %f\n\n",depth);*/
+			
+				set_pixel((int)i,(int)j,c,1/depth);
 				i+=dxdy;
 				inc++;
 			}
@@ -543,7 +553,7 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 			float z_inc = (ez-sz)/(ey-sy);		
 			float j = (float) sy;
 			int inc = 0;
-			for (int i = sx; i<ex; i++) {
+			for (float i = sx; i<ex; i++) {
 				struct Color col = {
 					r+(inc*r_inc),
 					g+(inc*g_inc),
@@ -551,9 +561,18 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				};
 				float depth = sz+((j-sy)*z_inc);
 				struct edge_pixel n = {i,col,depth};
-				edges[(int)(j-min)].push_back(n);	
+				edges[(int)(j-min)][(int)(i-minx)]=n;	
 				unsigned char c[4] = {43,107,100,255};
-				set_pixel((int)i,(int)j,c,(1/depth));
+				/*printf("sy %f\n",sy);
+				printf("ey %f\n",ey);
+				printf("ez %f\n",ez);
+				printf("sz %f\n",sz);
+				printf("j %f\n",j);
+				printf("sy %f\n",sy);
+				printf("z_inc %f\n",z_inc);
+				printf("1/depth %f\n",1/depth);
+				printf("depth %f\n\n",depth);*/
+				set_pixel((int)i,(int)j,c,1/depth);
 				j+=dydx;
 				inc++;
 			}
@@ -645,11 +664,11 @@ void render_mesh(Mesh *m, Camera *camera) {
 	unsigned char color[4] = {120,120,120,255};
 	std::vector <struct vertex>clip_coords;
 	////printf("==================\n");
-	float sf = 10;
+	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -3.0f;
-	float tz = -16.0f;
+	float ty = -4.0f;
+	float tz = -22.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -696,7 +715,9 @@ void render_mesh(Mesh *m, Camera *camera) {
 		std::vector <struct vector3D> poly_r;		
 		//PERSPECTIVE DIVIDE HERE
 		int max = 0;
+		int maxx = 0;
 		int min = 100000000;
+		int minx = 100000000;
 		for (int k = 0; k<new_poly.size(); k++) {
 			
 			struct vertex *v = new_poly[k];
@@ -714,6 +735,14 @@ void render_mesh(Mesh *m, Camera *camera) {
 			if (y<min) {
 				min = y;
 			}
+
+			if (x>maxx) {
+				maxx = x;
+			}
+			if (x<minx) {
+				minx = x;
+			}
+
 
 			//printf("(%f,%f) -> (%f,%f)\n",sx,sy,ex,ey);
 			//printf("drawing line between (%f,%f) and (%f,%f)\n",sx,sy,ex,ey);
@@ -747,11 +776,15 @@ void render_mesh(Mesh *m, Camera *camera) {
 		};
 	
 		const int range = max-min;	
-		std::vector <std::vector<struct edge_pixel>> pairs(range+1);
-		get_pairs(poly_r,pairs,vertex_attributes,min);
-		for (int l = 0; l<range+1; l++) {
-			std::vector<struct edge_pixel> s = pairs[l];
+		const int rangex = maxx-minx;	
+		struct edge_pixel empty;
+		empty.x=-1;
+		std::vector <struct edge_pixel> v(rangex+1,empty);
+		std::vector <std::vector<struct edge_pixel>> pairs(range+2,v);
 
+		get_pairs(poly_r,pairs,vertex_attributes,min,minx);
+		for (int l = 0; l<range+2; l++) {
+			std::vector<struct edge_pixel> s = pairs[l];
 			int yval = l+min;
 			float smallest = 100000000;
 			float largest = -100000000;
@@ -761,6 +794,10 @@ void render_mesh(Mesh *m, Camera *camera) {
 			//printf("y=%d\n",yval);
 			for (int b = 0; b<s.size(); b++) {
 				//printf("%f,",s[b].x);
+
+				if (s[b].x==-1)
+					continue;
+
 				if (s[b].x < smallest) {
 					smallest=s[b].x;
 					is=b;
@@ -782,7 +819,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 
 			float first = smallest;
 			float last = largest;
-				
+			
 			float startz = s[is].depth;			
 			float endz = s[il].depth;			
 				
@@ -796,7 +833,9 @@ void render_mesh(Mesh *m, Camera *camera) {
 			float b_inc = (s[il].c.b - s[is].c.b)/(last-first);
 			float z_inc = (endz - startz)/(last-first);
 		
-			for (int n=first; n<last; n++) {		
+			for (int n=first; n<last; n++) {
+				if (s[n-minx].x != -1)
+					continue;
 				unsigned char r = startr+(r_inc*(n-first));
 				unsigned char g = startg+(g_inc*(n-first));
 				unsigned char b = startb+(b_inc*(n-first));
@@ -804,7 +843,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 				unsigned char color[4] = {
 					r,g,b,255
 				};
-				set_pixel(n,yval,color,1/z);
+				set_pixel(n,yval,color,(1/z));
 			}
 				
 		
@@ -845,6 +884,12 @@ void initialize() {
 	load_model("models/crow.obj");
 	load_model("models/tank.obj");
 	load_model("models/drill.obj");
+	load_model("models/Plane.obj");
+	load_model("models/tugboat.obj");
+	load_model("models/Suzuki_Carry.obj");
+	load_model("models/snowcat.obj");
+	load_model("models/car.obj");
+	load_model("models/tractor.obj");
 
 	selected = 6;
 	models[selected]->normalize();
