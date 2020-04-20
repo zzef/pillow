@@ -8,6 +8,7 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <thread>
 #include <math.h>
 
 #define WIN_WIDTH 1024
@@ -518,8 +519,7 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				float depth = sz+((j-sy)*z_inc);
 				struct edge_pixel n = {i, col,depth};
 				edges[(int)(j-min)][(int)(i-minx)]=n;	
-				unsigned char c[4] = {43,107,100,255};
-
+				unsigned char c[4] = {130,130,130,255};
 				/*printf("sy %f\n",sy);
 				printf("ey %f\n",ey);
 				printf("ez %f\n",ez);
@@ -562,7 +562,7 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				float depth = sz+((j-sy)*z_inc);
 				struct edge_pixel n = {i,col,depth};
 				edges[(int)(j-min)][(int)(i-minx)]=n;	
-				unsigned char c[4] = {43,107,100,255};
+				unsigned char c[4] = {130,130,130,255};
 				/*printf("sy %f\n",sy);
 				printf("ey %f\n",ey);
 				printf("ez %f\n",ez);
@@ -659,39 +659,14 @@ void get_triangle(std::vector<long>& ply, std::vector<struct vertex*> &new_poly,
 	
 }	
 
-void render_mesh(Mesh *m, Camera *camera) {
+void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 
-	unsigned char color[4] = {120,120,120,255};
-	std::vector <struct vertex>clip_coords;
-	////printf("==================\n");
-	float sf = 12;
-	m->scale(sf,sf,sf);
-	float tx = 0.0f;
-	float ty = -4.0f;
-	float tz = -22.0f;
-	m->rotate_y(1.5f);
-	m->translate(tx,ty,tz);
-
-	for (int vtx = 0; vtx<m->vertices(); vtx++) {
-		
-		struct vertex* v = &(m->v_list[vtx]);
-		//Applying matrix projection to enter clip space				
-		float x = (float) ( v->x * pm[0][0] ) + ( v->y * pm[1][0] ) + ( v->z * pm[2][0] ) + ( v->w * pm[3][0] );
-		float y = (float) ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
-		float z = (float) ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
-		float w = (float) ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
-		struct vertex c = {x,y,z,w};
-		clip_coords.push_back(c);
-
-	}
-
-	for (int i = 0; i<m->triangles(); i++) {
 		std::vector <struct vertex*> new_poly;
 		get_triangle(m->tf_list[i],new_poly,clip_coords);	
 		//check dot product of camera to normal here and continue if negative
 		
 		if (new_poly.size()<1)
-			continue;
+			return;
 
 		struct vertex v0 = *new_poly[0];
 		struct vertex v1 = *new_poly[1];
@@ -710,7 +685,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 		Vec3 diff = vec4.res(vec0);
 
 		if (f_norm.dot(diff)<0) 
-			continue;
+			return;
 	
 		std::vector <struct vector3D> poly_r;		
 		//PERSPECTIVE DIVIDE HERE
@@ -752,12 +727,16 @@ void render_mesh(Mesh *m, Camera *camera) {
 		//RASTER SPACE
 		std::vector <struct Color> vertex_attributes = {
 				
+			{225,225,225},
+			{225,225,225},
+			{225,225,225},
+			{225,225,225},
+/*			
 			{159,229,221},
 			{159,229,221},
 			{159,229,221},
 			{159,229,221},
 
-/*
 			{255,255,255},
 			{255,255,255},
 			{255,255,255},
@@ -779,7 +758,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 		const int rangex = maxx-minx;	
 		struct edge_pixel empty;
 		empty.x=-1;
-		std::vector <struct edge_pixel> v(rangex+1,empty);
+		std::vector <struct edge_pixel> v(rangex+2,empty);
 		std::vector <std::vector<struct edge_pixel>> pairs(range+2,v);
 
 		get_pairs(poly_r,pairs,vertex_attributes,min,minx);
@@ -856,9 +835,40 @@ void render_mesh(Mesh *m, Camera *camera) {
 		//	struct vector3D v1 = poly_r[j+1];
 			//draw_line(v.x,v.y,v1.x,v1.y,color);
 		//}
+
+}
+
+void render_mesh(Mesh *m, Camera *camera) {
+
+	unsigned char color[4] = {120,120,120,255};
+	std::vector <struct vertex>clip_coords;
+	////printf("==================\n");
+	float sf = 12;
+	m->scale(sf,sf,sf);
+	float tx = 0.0f;
+	float ty = -4.0f;
+	float tz = -22.0f;
+	m->rotate_y(1.5f);
+	m->translate(tx,ty,tz);
+
+	for (int vtx = 0; vtx<m->vertices(); vtx++) {
+		
+		struct vertex* v = &(m->v_list[vtx]);
+		//Applying matrix projection to enter clip space				
+		float x = (float) ( v->x * pm[0][0] ) + ( v->y * pm[1][0] ) + ( v->z * pm[2][0] ) + ( v->w * pm[3][0] );
+		float y = (float) ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
+		float z = (float) ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
+		float w = (float) ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
+		struct vertex c = {x,y,z,w};
+		clip_coords.push_back(c);
+
+	}
+
+
+	for (int i = 0; i<m->triangles(); i++) {
+		render_triangle(i,m,clip_coords);
 	}
 	
-
 	m->translate(-tx,-ty,-tz);
 	m->scale(1/sf,1/sf,1/sf);
 }
@@ -890,8 +900,13 @@ void initialize() {
 	load_model("models/snowcat.obj");
 	load_model("models/car.obj");
 	load_model("models/tractor.obj");
+	load_model("models/treecartoon.obj");
+	load_model("models/lighthouse.obj");
+	load_model("models/rallycar.obj");
+	load_model("models/voxel.obj");
+	load_model("models/lowpolytree.obj");
 
-	selected = 6;
+	selected = 11;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
