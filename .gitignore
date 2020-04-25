@@ -1,1 +1,8 @@
+<<<<<<< Updated upstream
 pillow
+=======
+bin/*
+project
+build/*
+
+>>>>>>> Stashed changes
