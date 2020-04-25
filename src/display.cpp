@@ -1,0 +1,113 @@
+#include "SDL2/SDL.h"
+#include "../include/includes.h"
+#include "../include/display.h"
+
+Display::Display(int width, int height, std::string title) {
+	this->width=width;
+	this->height=height;		
+	this->prepare_buffers();	
+	this->title=title;
+}
+
+void Display::prepare_buffers() {
+	
+	long size = 4*width*height;
+	this->buffer = (unsigned char*) malloc(size*sizeof(unsigned char));
+	this->depth_buffer = (float*) malloc(width*height*sizeof(float));
+
+}
+
+void Display::clear_buffer() {
+	for (int i = 0; i<this->width; i++) {
+		for (int j = 0; j<this->height; j++) {
+			int ix = (j*this->width+i);
+			int ix4 = ix*4;
+			this->buffer[ix4+0]=clc[3];	
+			this->buffer[ix4+1]=clc[2];	
+			this->buffer[ix4+2]=clc[1];	
+			this->buffer[ix4+3]=clc[0];	
+			this->depth_buffer[ix]=1000000;	
+		}
+	}
+
+}
+
+void Display::init() {
+	//Start SDL
+	SDL_Init(SDL_INIT_EVERYTHING);
+
+	//We start by creating a window
+	this->window = SDL_CreateWindow(
+		this->title.c_str(),
+		SDL_WINDOWPOS_CENTERED,
+		SDL_WINDOWPOS_CENTERED,
+		this->width,
+		this->height,
+		SDL_WINDOW_SHOWN
+	);
+	//We need a renderer to do our rendering
+	this->renderer = SDL_CreateRenderer(this->window,-1,0);
+	//Set the clear color for our renderer
+	SDL_SetRenderDrawColor(this->renderer,30,30,30,255);
+	//clear
+	SDL_RenderClear(this->renderer);
+	
+	//Create frame
+	this->Frame = SDL_CreateTexture(this->renderer, SDL_PIXELFORMAT_RGBA8888,
+		SDL_TEXTUREACCESS_STREAMING, this->width, this->height
+	);
+
+}	
+
+void Display::flip_buffer() {
+	unsigned char* bytes = nullptr;
+	int pitch = 0;
+	//get locked pixels and store in bytes for write access
+	SDL_LockTexture(this->Frame,nullptr,(void**)(&bytes),&pitch);
+	for (int y = 0; y < this->height; y++) {
+		for (int x = 0; x < this->width; x++) {
+			int index = (y*this->width+x)*4;
+			memcpy(&bytes[index],&this->buffer[index],4);
+		}
+	}
+	SDL_UnlockTexture(this->Frame);
+	SDL_Rect destination = {0,0,this->width,this->height};
+	SDL_RenderCopy(renderer,Frame,NULL,&destination);		
+	//show
+	SDL_RenderPresent(this->renderer);
+}
+
+void Display::set_pixel(int x, int y, unsigned char* color,float depth) {
+
+	if (x<0 || x >= this->width) {
+		//////printf("clipped x\n");
+		return;
+	}
+	if (y<0 || y >= this->height) {
+		//////printf("clipped y\n");
+		return;
+	}
+	int i = y*this->width+x;
+	int i4 = i*4;
+	float d = this->depth_buffer[i];
+	
+	if (depth<d) {
+		this->depth_buffer[i]=depth;
+	}
+	else {
+		return;
+	}
+	
+	this->buffer[i4+0]=color[3];	
+	this->buffer[i4+1]=color[2];	
+	this->buffer[i4+2]=color[1];	
+	this->buffer[i4+3]=color[0];	
+}
+
+void Display::destroy() {
+	free(this->buffer);
+	free(this->depth_buffer);
+	SDL_DestroyWindow(this->window);
+	SDL_Quit();
+}
+

@@ -2,7 +2,7 @@
 #include "../include/Mesh.h"
 #include "../include/Mesh_load.h"
 #include "../include/vector.h"
-#include "SDL2/SDL.h"
+#include "../include/display.h"
 
 #define WIN_WIDTH 1024
 #define WIN_HEIGHT 768
@@ -30,9 +30,8 @@ struct viewport {
 	float h;
 };
 
-const unsigned char fill = 50;
-const unsigned char wf[3] = {100,100,100};
-const unsigned char clc[3] = {30,30,30};
+const unsigned char fill = 120;
+const unsigned char wf[3] = {50,50,50};
 
 bool no_clipping=false;
 long selected = 0;
@@ -52,68 +51,7 @@ const float pm[4][4] = {
 };
 
 std::vector<Mesh*> models;
-
-unsigned char buffer[WIN_WIDTH][WIN_HEIGHT][4];
-float depth_buffer[WIN_WIDTH][WIN_HEIGHT];
-	
-void clear_buffer() {
-	for (int i = 0; i<WIN_WIDTH; i++) {
-		for (int j = 0; j<WIN_HEIGHT; j++) {
-			depth_buffer[i][j]=10000000000;	
-		}
-	}
-
-	for (int i = 0; i<WIN_WIDTH; i++) {
-		for (int j = 0; j<WIN_HEIGHT; j++) {
-			buffer[i][j][0]=255;	
-			buffer[i][j][1]=clc[0];
-			buffer[i][j][2]=clc[1];
-			buffer[i][j][3]=clc[2];
-		}
-	}
-}
-
-void flip_buffer(SDL_Renderer* renderer, SDL_Texture* Frame) {
-	unsigned char* bytes = nullptr;
-	int pitch = 0;
-	//get locked pixels and store in bytes for write access
-	SDL_LockTexture(Frame,nullptr,(void**)(&bytes),&pitch);
-	for (int y = 0; y < WIN_HEIGHT; y++) {
-		for (int x = 0; x < WIN_WIDTH; x++) {
-			memcpy(&bytes[(y*WIN_WIDTH+x)*4],buffer[x][y],4);
-		}
-	}
-	SDL_UnlockTexture(Frame);
-	SDL_Rect destination = {0,0,WIN_WIDTH,WIN_HEIGHT};
-	SDL_RenderCopy(renderer,Frame,NULL,&destination);		
-	//show
-	SDL_RenderPresent(renderer);
-}
-
-void set_pixel(int x, int y, unsigned char* color,float depth) {
-
-	if (x<0 || x>=WIN_WIDTH) {
-		//////printf("clipped x\n");
-		return;
-	}
-	if (y<0 || y>=WIN_HEIGHT) {
-		//////printf("clipped y\n");
-		return;
-	}
-
-	float d = depth_buffer[x][y];
-	if (depth<d) {
-		depth_buffer[x][y]=depth;
-	}
-	else {
-		return;
-	}
-
-	buffer[x][y][0]=color[3];
-	buffer[x][y][1]=color[2];
-	buffer[x][y][2]=color[1];
-	buffer[x][y][3]=color[0];
-}
+Display* display;
 
 void get_pairs(std::vector<struct vector3D> poly_r,
  	std::vector <std::vector<struct edge_pixel>>& edges,
@@ -176,7 +114,7 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				struct edge_pixel n = {i, col,depth};
 				edges[(int)(j-min)][(int)(i-minx)]=n;	
 				unsigned char c[4] = {wf[0],wf[1],wf[2],255};
-				set_pixel((int)i,(int)j,c,1/depth);
+				display->set_pixel((int)i,(int)j,c,1/depth);
 				i+=dxdy;
 				inc++;
 			}
@@ -209,7 +147,7 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				struct edge_pixel n = {i,col,depth};
 				edges[(int)(j-min)][(int)(i-minx)]=n;	
 				unsigned char c[4] = {wf[0],wf[1],wf[2],255};
-				set_pixel((int)i,(int)j,c,1/depth);
+				display->set_pixel((int)i,(int)j,c,1/depth);
 				j+=dydx;
 				inc++;
 			}
@@ -417,7 +355,7 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 				unsigned char color[4] = {
 					r,g,b,255
 				};
-				set_pixel(n,yval,color,(1/z));
+				display->set_pixel(n,yval,color,(1/z));
 			}
 		}
 
@@ -427,10 +365,10 @@ void render_mesh(Mesh *m) {
 
 	unsigned char color[4] = {120,120,120,255};
 	std::vector <struct vertex>clip_coords;
-	float sf = 16;
+	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -8.0f;
+	float ty = -6.0f;
 	float tz = -22.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
@@ -489,7 +427,7 @@ void initialize() {
 	load_model("models/voxel.obj",models);
 	load_model("models/lowpolytree.obj",models);
 
-	selected = 9;
+	selected = 11;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
@@ -515,35 +453,14 @@ void update() {
 
 int main(int argc, char* args[]) {
 	
-	//Start SDL
-	SDL_Init(SDL_INIT_EVERYTHING);
-
-	//We start by creating a window	
-	SDL_Window *window = SDL_CreateWindow(
-		WINDOW_TITLE,
-		SDL_WINDOWPOS_CENTERED,
-		SDL_WINDOWPOS_CENTERED,
-		WIN_WIDTH,
-		WIN_HEIGHT,
-		SDL_WINDOW_SHOWN
-	);
-	//We need a renderer to do our rendering
-	SDL_Renderer *renderer = SDL_CreateRenderer(window,-1,0);
-	//Set the clear color for our renderer
-	SDL_SetRenderDrawColor(renderer,30,30,30,255);
-	//clear
-	SDL_RenderClear(renderer);
-	
-	//Create frame
-	SDL_Texture *Frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
-		SDL_TEXTUREACCESS_STREAMING, WIN_WIDTH,WIN_HEIGHT
-	);
+	display = new Display(WIN_WIDTH,WIN_HEIGHT,WINDOW_TITLE);
+	display->init();
 	int frames = 0;
 	clock_t before = clock();
 	initialize();
 	//return 0;
 	while(1) {
-		clear_buffer();
+		display->clear_buffer();
 		if((clock() - before) / CLOCKS_PER_SEC > 1) {
 			printf("fps %i\n",frames);
 			before = clock();
@@ -551,12 +468,11 @@ int main(int argc, char* args[]) {
 		}
 		update();
 		render();
-		flip_buffer(renderer,Frame);
+		display->flip_buffer();
 		frames++;
 	}
 	//Quit SDL
-	SDL_DestroyWindow(window);
-	SDL_Quit();
+	display->destroy();
 
 	return 0;
 }
