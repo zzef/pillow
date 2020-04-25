@@ -1,15 +1,4 @@
-#include "SDL2/SDL.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include <vector>
-#include <array>
-#include <time.h>
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <iostream>
-#include <thread>
-#include <math.h>
+#include "../include/includes.h"
 
 #define WIN_WIDTH 1024
 #define WIN_HEIGHT 768
@@ -44,11 +33,9 @@ struct viewport {
 	float h;
 };
 
-struct vector3D {
-	float x;
-	float y;
-	float z;
-};
+const unsigned char fill = 50;
+const unsigned char wf[3] = {100,100,100};
+const unsigned char clc[3] = {30,30,30};
 
 bool no_clipping=false;
 long selected = 0;
@@ -67,335 +54,7 @@ const float pm[4][4] = {
 
 };
 
-class Camera {
-	
-	public:
-		float transform[4][4] = {
-			
-			{ 1, 0, 0, 0 },
-			{ 0, 1, 0, 0 },
-			{ 0, 0, 1, 0 },
-			{ 0, 0, 0, 1 }
- 	
-		};
-	struct vector3D eye_point() {
-		struct vector3D ep = {0,0,0};
-		return ep;
-	}
-	
-};
-
-class Vec3 {
-
-	public:
-		float x;
-		float y;
-		float z;
-		
-		Vec3(float x, float y, float z) {
-			this->x=x;
-			this->y=y;
-			this->z=z;
-		}
-
-		Vec3 cross(Vec3 v) {
-			
-			Vec3 n (
-				(this->y * v.z) - (this->z * v.y),
-				(this->z * v.x) - (this->x * v.z),
-				(this->x * v.y) - (this->y * v.x)
-			); 	
-			return n;	
-			
-		}
-
-		Vec3 res(Vec3 v) {
-			
-			Vec3 n (
-				v.x-this->x,
-				v.y-this->y,
-				v.z-this->z
-			);
-			return n;
-	
-		}		
-
-		float dot(Vec3 v) {
-			return (this->x*v.x) + (this->y*v.y) + (this->z*v.z);
-		}
-
-};
-
-class Mesh {
-
-	public:
-	
-		std::vector<struct vertex> v_list;
-		std::vector<std::vector<long>> f_list;
-		std::vector<std::vector<long>> tf_list;
-		std::vector<struct vector3D> n_list;
-		std::string name;
-		float max = 1;		
-
-		Mesh(std::string title) {
-			this->name=title;
-		}
-
-		void update_max() {
-			for (long i = 0; i<this->vertices(); i++) {
-				if (this->v_list[i].x>max)
-					max=this->v_list[i].x;
-				if (this->v_list[i].y>max)
-					max=this->v_list[i].y;
-				if (this->v_list[i].z>max)
-					max=this->v_list[i].z;
-
-			}
-		}
-
-		void triangulate() {
-			//assumes that all triangles are concave.	
-			for (int i = 0; i<this->polygons(); i++) {
-				if (f_list[i].size()>4) {
-					for (int j = 1; j<f_list[i].size()-2; j++) {
-						std::vector<long> v;
-						long v0 = f_list[i][0];
-						long v1 = f_list[i][j];
-						long v2 = f_list[i][j+1];
-						v.push_back(v0);
-						v.push_back(v1);
-						v.push_back(v2);
-						v.push_back(v0);
-						this->tf_list.push_back(v);
-					}
-				}
-				else {
-					tf_list.push_back(f_list[i]);
-				}
-			}
-		}
-
-		void normalize() {
-			this->update_max();
-			for (long i = 0; i<this->vertices(); i++) {
-				this->v_list[i].x/=max;
-				this->v_list[i].y/=max;
-				this->v_list[i].z/=max;
-			}
-		}
-
-		void add_normal(float x, float y, float z) {
-			struct vector3D n = {x ,y ,z};
-			this->n_list.push_back(n);	
-		}
-
-		long normals() {
-			return n_list.size();
-		}
-
-
-		void add_vertex(float x, float y, float z) {
-			struct vertex v = {x ,y ,z, 1};
-			this->v_list.push_back(v);	
-		}
-
-		long vertices() {
-			return v_list.size();
-		}
-
-		void add_face(std::vector<long> face) {
-			this->f_list.push_back(face);
-		}
-
-		long polygons() {
-			return f_list.size();
-		}
-
-
-		long triangles() {
-			return tf_list.size();
-		}
-
-		void print_mesh() {
-			std::cout<<name<<"\n";
-			printf("===================\n");
-			printf("vertices\n");
-			printf("===================\n");
-			for (int i = 0 ; i<this->v_list.size(); i++) {
-				printf("%f %f %f %f\n", v_list[i].x, v_list[i].y, v_list[i].z, v_list[i].w);
-			}
-			printf("===================\n");
-			printf("triangles\n");
-			printf("===================\n");
-			for (int i = 0; i<this->f_list.size(); i++) {
-				for (int j = 0; j<this->f_list[i].size(); j++) {
-					printf("%ld ",f_list[i][j]);
-				}
-				printf("\n");
-			}
-			printf("===================\n");
-			printf("normals\n");
-			printf("===================\n");
-			for (int i = 0 ; i<this->n_list.size(); i++) {
-				printf("%f %f %f\n", n_list[i].x, n_list[i].y, n_list[i].z);
-			}
-
-			printf("\n");
-		}
-
-		void scale(float x, float y, float z) {
-				
-			float scale_mat[4][4] = {
-					
-				{ x, 0, 0, 0 },
-				{ 0, y, 0, 0 },
-				{ 0, 0, z, 0 },
-				{ 0, 0, 0, 1 }
-			
-			};
-			
-			this->apply_transform(scale_mat);
-			
-		}
-		
-		void rotate_x(float angle) {
-
-			float t = ((angle*M_PI)/180);
-			float rot_x[4][4] = {
-					
-				{   1,      0,      0,      0   },
-				{   0,   cos(t), -sin(t),   0   },
-				{   0,   sin(t),  cos(t),   0   },
-				{   0,      0,      0,      1   }
-				
-			};
-			this->apply_transform(rot_x);
-
-		}
-
-		void rotate_y(float angle) {
-
-			float t = ((angle*M_PI)/180);
-			float rot_y[4][4] = {
-					
-				{ cos(t),   0,    sin(t),   0   },
-				{   0,      1,      0,      0   },
-				{-sin(t),   0,    cos(t),   0   },
-				{   0,      0,      0,      1   }
-				
-			};
-			this->apply_transform(rot_y);
-
-		}
-
-		void rotate_z(float angle) {
-
-			float t = ((angle*M_PI)/180);
-			float rot_z[4][4] = {
-					
-				{ cos(t),-sin(t),   0,      0   },
-				{ sin(t), cos(t),   0,      0   },
-				{   0,      0,      1,      0   },
-				{   0,      0,      0,      1   }
-				
-			};
-			this->apply_transform(rot_z);
-
-		}
-
-		void translate(float x, float y, float z) {
-
-			float trans[4][4] = {
-
-				{ 1, 0, 0, 0 },
-				{ 0, 1, 0, 0 },
-				{ 0, 0, 1, 0 },
-				{ x, y, z, 1 }
-			
-			};
-			this->apply_transform(trans);
-
-		}
-		
-		void apply_transform(float tm[4][4]) {
-
-			for	(long i = 0; i<this->vertices(); i++) {
-			
-				float x = ( this->v_list[i].x * tm[0][0] ) + ( this->v_list[i].y * tm[1][0] ) + ( this->v_list[i].z * tm[2][0] ) + ( this->v_list[i].w * tm[3][0] );
-				float y = ( this->v_list[i].x * tm[0][1] ) + ( this->v_list[i].y * tm[1][1] ) + ( this->v_list[i].z * tm[2][1] ) + ( this->v_list[i].w * tm[3][1] );
-				float z = ( this->v_list[i].x * tm[0][2] ) + ( this->v_list[i].y * tm[1][2] ) + ( this->v_list[i].z * tm[2][2] ) + ( this->v_list[i].w * tm[3][2] );
-				float w = ( this->v_list[i].x * tm[0][3] ) + ( this->v_list[i].y * tm[1][3] ) + ( this->v_list[i].z * tm[2][3] ) + ( this->v_list[i].w * tm[3][3] );
-				
-				this->v_list[i].x = x;
-				this->v_list[i].y = y;
-				this->v_list[i].z = z;
-				this->v_list[i].w = w;
-			
-			}
-	
-		}
-	
-};	
-
 std::vector<Mesh*> models;
-
-
-void split(const std::string& str, std::vector<std::string>& vec, char delim = ' ') {
-	std::istringstream iss(str);
-	std::string token;
-	for(std::string s; iss >> s; ) {
-		vec.push_back(s);
-	}
-}
-
-void load_model(std::string path) {
-	std::string line;
-	std::ifstream model(path);
-	if (model.is_open()) {
-		Mesh *m = new Mesh(path);
-		while (std::getline(model,line)) {
-			if (line[0]=='v' && line[1]==' ') {
-				std::vector<std::string> vertex;
-				split(line,vertex);
-				m->add_vertex(
-					atof(vertex[1].c_str()),
-					atof(vertex[2].c_str()),
-					atof(vertex[3].c_str())
-				);
-			}
-			else if (line[0]=='f' && line[1]==' ') {
-				std::vector<std::string> face;
-				split(line,face);
-				std::vector<long> indices;
-				for (int i = 1; i<face.size(); i++) {
-					std::vector<std::string> index;
-					split(face[i],index);
-					indices.push_back(atol(index[0].c_str()));
-					index.clear();
-					index.shrink_to_fit();
-					//free up memory
-				}
-				indices.push_back(indices[0]);
-				m->add_face(indices);
-			}
-			else if (line[0]=='v' && line[1]=='n') {
-				std::vector<std::string> normal;
-				split(line,normal);
-				m->add_normal(
-					atof(normal[1].c_str()),
-					atof(normal[2].c_str()),
-					atof(normal[3].c_str())
-				);
-			}
-
-		}
-		models.push_back(m);
-		model.close();
-	}
-	else {
-		std::cout << "Unable to open file\n";
-	}
-}
 
 unsigned char buffer[WIN_WIDTH][WIN_HEIGHT][4];
 float depth_buffer[WIN_WIDTH][WIN_HEIGHT];
@@ -410,9 +69,9 @@ void clear_buffer() {
 	for (int i = 0; i<WIN_WIDTH; i++) {
 		for (int j = 0; j<WIN_HEIGHT; j++) {
 			buffer[i][j][0]=255;	
-			buffer[i][j][1]=255;
-			buffer[i][j][2]=255;
-			buffer[i][j][3]=255;
+			buffer[i][j][1]=clc[0];
+			buffer[i][j][2]=clc[1];
+			buffer[i][j][3]=clc[2];
 		}
 	}
 }
@@ -519,17 +178,7 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				float depth = sz+((j-sy)*z_inc);
 				struct edge_pixel n = {i, col,depth};
 				edges[(int)(j-min)][(int)(i-minx)]=n;	
-				unsigned char c[4] = {130,130,130,255};
-				/*printf("sy %f\n",sy);
-				printf("ey %f\n",ey);
-				printf("ez %f\n",ez);
-				printf("sz %f\n",sz);
-				printf("j %f\n",j);
-				printf("sy %f\n",sy);
-				printf("z_inc %f\n",z_inc);
-				printf("1/depth %f\n",1/depth);
-				printf("depth %f\n\n",depth);*/
-			
+				unsigned char c[4] = {wf[0],wf[1],wf[2],255};
 				set_pixel((int)i,(int)j,c,1/depth);
 				i+=dxdy;
 				inc++;
@@ -562,33 +211,13 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 				float depth = sz+((j-sy)*z_inc);
 				struct edge_pixel n = {i,col,depth};
 				edges[(int)(j-min)][(int)(i-minx)]=n;	
-				unsigned char c[4] = {130,130,130,255};
-				/*printf("sy %f\n",sy);
-				printf("ey %f\n",ey);
-				printf("ez %f\n",ez);
-				printf("sz %f\n",sz);
-				printf("j %f\n",j);
-				printf("sy %f\n",sy);
-				printf("z_inc %f\n",z_inc);
-				printf("1/depth %f\n",1/depth);
-				printf("depth %f\n\n",depth);*/
+				unsigned char c[4] = {wf[0],wf[1],wf[2],255};
 				set_pixel((int)i,(int)j,c,1/depth);
 				j+=dydx;
 				inc++;
 			}
 		}
 	}
-}
-
-void draw_rect(float x, float y, float w, float h, unsigned char* color) {
-	//draw_line(x,y,x+w,y,color);
-	//draw_line(x+w,y,x+w,y+h,color);
-	//draw_line(x+w,y+h,x,y+h,color);
-	//draw_line(x,y+h,x,y,color);
-}
-
-float dot3D (struct vector3D v1, struct vector3D v2) {
-	return (v1.x*v2.x)+(v1.y*v2.y)+(v1.z*v2.z);
 }
 
 void clip_triangle(std::vector<long>& ply, std::vector<struct vertex> &new_poly, 
@@ -718,40 +347,16 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 				minx = x;
 			}
 
-
-			//printf("(%f,%f) -> (%f,%f)\n",sx,sy,ex,ey);
-			//printf("drawing line between (%f,%f) and (%f,%f)\n",sx,sy,ex,ey);
-
 		}	
 		
 		//RASTER SPACE
 		std::vector <struct Color> vertex_attributes = {
 				
-			{225,225,225},
-			{225,225,225},
-			{225,225,225},
-			{225,225,225},
-/*			
-			{159,229,221},
-			{159,229,221},
-			{159,229,221},
-			{159,229,221},
+			{fill,fill,fill},
+			{fill,fill,fill},
+			{fill,fill,fill},
+			{fill,fill,fill},
 
-			{255,255,255},
-			{255,255,255},
-			{255,255,255},
-			{255,255,255},
-
-			{120,120,120},
-			{120,120,120},
-			{120,120,120},
-			{120,120,120},
-
-			{255,0,0},
-			{0,255,0},
-			{0,0,255},
-			{255,0,0},
-*/
 		};
 	
 		const int range = max-min;	
@@ -769,10 +374,7 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 			float largest = -100000000;
 			int is = 0;
 			int il = 0;
-			//printf("=============\n");
-			//printf("y=%d\n",yval);
 			for (int b = 0; b<s.size(); b++) {
-				//printf("%f,",s[b].x);
 
 				if (s[b].x==-1)
 					continue;
@@ -787,10 +389,6 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 					il=b;
 				}
 			}
-			//printf("\n");	
-			//printf("smallest = %f\n",smallest);
-			//printf("largest = %f\n",largest);
-			//printf("\n\n");
 	
 			if (s.size() < 1) {
 				continue;
@@ -824,29 +422,18 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 				};
 				set_pixel(n,yval,color,(1/z));
 			}
-				
-		
-			//struct edge_pixel x2 = pairs[i][pairs[i].size()-1];
 		}
-
-		//for wireframe
-		//for (int j = 0; j<poly_r.size()-1; j++) {
-		//	struct vector3D v = poly_r[j];
-		//	struct vector3D v1 = poly_r[j+1];
-			//draw_line(v.x,v.y,v1.x,v1.y,color);
-		//}
 
 }
 
-void render_mesh(Mesh *m, Camera *camera) {
+void render_mesh(Mesh *m) {
 
 	unsigned char color[4] = {120,120,120,255};
 	std::vector <struct vertex>clip_coords;
-	////printf("==================\n");
-	float sf = 12;
+	float sf = 16;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -4.0f;
+	float ty = -8.0f;
 	float tz = -22.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
@@ -863,7 +450,6 @@ void render_mesh(Mesh *m, Camera *camera) {
 		clip_coords.push_back(c);
 
 	}
-
 
 	for (int i = 0; i<m->triangles(); i++) {
 		render_triangle(i,m,clip_coords);
@@ -906,7 +492,7 @@ void initialize() {
 	load_model("models/voxel.obj");
 	load_model("models/lowpolytree.obj");
 
-	selected = 11;
+	selected = 9;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
@@ -915,8 +501,6 @@ void initialize() {
 		models[selected]->triangles(),
 		models[selected]->vertices()
 	);
-
-
 	
 }
 
@@ -924,18 +508,7 @@ void render() {
 
 	unsigned char color[4] = {120,120,120,255};
 	unsigned char red[4] = {255,0,0,255};
-
-	//for (int i = 0; i < 10000; i++) {
-	//	draw_line(rand() % WIN_WIDTH,rand() % WIN_HEIGHT,rand() % WIN_WIDTH,rand() % WIN_HEIGHT,color);
-	//}
-	//draw_line(10,10,454,333,red);
-	Camera *cam = new Camera();
-	//render_mesh(models[0],cam);	
-	//render_mesh(models[1],cam);	
-	//render_mesh(models[2],cam);	
-	render_mesh(models[selected],cam);	
-	//render_mesh(models[6],cam);	
-	//render_mesh(models[5],cam);	
+	render_mesh(models[selected]);	
 
 }
 
