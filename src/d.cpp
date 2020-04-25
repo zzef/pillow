@@ -3,20 +3,30 @@
 #include "../include/display.h"
 
 Display::Display(int width, int height, std::string title) {
-	this->width=std::max(MIN_W,std::min(width,MAX_W));
-	this->height=std::max(MIN_H,std::min(height,MAX_H));	
+	this->width=width;
+	this->height=height;		
+	this->prepare_buffers();	
 	this->title=title;
+}
+
+void Display::prepare_buffers() {
 	
+	long size = 4*width*height;
+	this->buffer = (unsigned char*) malloc(size*sizeof(unsigned char));
+	this->depth_buffer = (float*) malloc(width*height*sizeof(float));
+
 }
 
 void Display::clear_buffer() {
 	for (int i = 0; i<this->width; i++) {
 		for (int j = 0; j<this->height; j++) {
-			this->buffer[i][j][0]=255;	
-			this->buffer[i][j][1]=this->clc[0];
-			this->buffer[i][j][2]=this->clc[1];
-			this->buffer[i][j][3]=this->clc[2];
-			this->depth_buffer[i][j]=10000000000;	
+			int ix = (j*this->width+i);
+			int ix4 = ix*4;
+			this->buffer[ix4+0]=clc[3];	
+			this->buffer[ix4+1]=clc[2];	
+			this->buffer[ix4+2]=clc[1];	
+			this->buffer[ix4+3]=clc[0];	
+//			this->depth_buffer[ix]=1000000;	
 		}
 	}
 
@@ -56,7 +66,8 @@ void Display::flip_buffer() {
 	SDL_LockTexture(this->Frame,nullptr,(void**)(&bytes),&pitch);
 	for (int y = 0; y < this->height; y++) {
 		for (int x = 0; x < this->width; x++) {
-			memcpy(&bytes[(y*this->width+x)*4],this->buffer[x][y],4);
+			int index = (y*this->width+x)*4;
+			memcpy(&bytes[index],&this->buffer[index],4);
 		}
 	}
 	SDL_UnlockTexture(this->Frame);
@@ -76,22 +87,26 @@ void Display::set_pixel(int x, int y, unsigned char* color,float depth) {
 		//////printf("clipped y\n");
 		return;
 	}
-
-	float d = this->depth_buffer[x][y];
-	if (depth<d) {
-		this->depth_buffer[x][y]=depth;
+	int i = y*this->width+x;
+	int i4 = i*4;
+	float d = this->depth_buffer[i];
+	
+/*	if (depth<d) {
+		this->depth_buffer[i]=depth;
 	}
 	else {
 		return;
 	}
-
-	this->buffer[x][y][0]=color[3];
-	this->buffer[x][y][1]=color[2];
-	this->buffer[x][y][2]=color[1];
-	this->buffer[x][y][3]=color[0];
+*/	
+	this->buffer[i4+0]=color[3];	
+	this->buffer[i4+1]=color[2];	
+	this->buffer[i4+2]=color[1];	
+	this->buffer[i4+3]=color[0];	
 }
 
 void Display::destroy() {
+	free(this->buffer);
+	free(this->depth_buffer);
 	SDL_DestroyWindow(this->window);
 	SDL_Quit();
 }

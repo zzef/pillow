@@ -427,7 +427,7 @@ void initialize() {
 	load_model("models/voxel.obj",models);
 	load_model("models/lowpolytree.obj",models);
 
-	selected = 11;
+	selected = 4;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();

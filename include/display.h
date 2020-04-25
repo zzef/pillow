@@ -1,6 +1,12 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
+
 #include "SDL2/SDL.h"
+
+#define MAX_W 1920
+#define MAX_H 1080
+#define MIN_W 640
+#define MIN_H 480
 
 struct pixel {
 	unsigned char r;
@@ -13,8 +19,8 @@ class Display {
 
 	public:
 
-		unsigned char* buffer;
-		float* depth_buffer;
+		unsigned char buffer[MAX_W][MAX_H][4];
+		float depth_buffer[MAX_W][MAX_H];
 		int height;
 		int width;	
 		std::string title;
