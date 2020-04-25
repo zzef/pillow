@@ -3,8 +3,8 @@ LIBS = -lSDL2
 IDIR = include
 BINC = $(IDIR)/includes.h
 SDIR = src
-BDIR = bin
-OBJDIR = build
+BDIR = .
+OBJDIR = .
 
 DEPS = $(OBJDIR)/vector.o $(OBJDIR)/Mesh.o $(OBJDIR)/Mesh_loader.o 
 

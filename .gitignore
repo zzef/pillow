@@ -1,4 +1,4 @@
 pillow
-bin/.*
 project
-build/.*
+*.o
+
