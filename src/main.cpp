@@ -339,7 +339,7 @@ void render_mesh(Mesh *m) {
 	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -3.0f;
+	float ty = -6.0f;
 	float tz = -22.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
