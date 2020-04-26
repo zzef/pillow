@@ -12,13 +12,13 @@
 //Create frame buffer
 
 struct Color {
-	float r;
-	float g;
-	float b;
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
 };
 
 struct edge_pixel {	
-	float x;
+	int x;
 	struct Color c;
 	float depth;
 };
@@ -58,100 +58,81 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 	std::vector<struct Color> v_a, int min,int minx
 ) {
 
-	for (int k = 0; k<poly_r.size()-1; k++) {
+	printf("newting\n");
+	for (int k = 0; k<poly_r.size()-2; k++) {
 
-		unsigned char r = v_a[k].r;
-		unsigned char g = v_a[k].g;
-		unsigned char b = v_a[k].b;
+		float r = (float) v_a[k].r;
+		float g = (float) v_a[k].g;
+		float b = (float) v_a[k].b;
 
-		unsigned char r1 = v_a[k+1].r;
-		unsigned char g1 = v_a[k+1].g;
-		unsigned char b1 = v_a[k+1].b;
+		float r1 = (float) v_a[k+1].r;
+		float g1 = (float) v_a[k+1].g;
+		float b1 = (float) v_a[k+1].b;
 
-		float s_x = poly_r[k].x;
-		float s_y = poly_r[k].y;
-		float s_z = poly_r[k].z;
-		float e_x = poly_r[k+1].x; 
-		float e_y = poly_r[k+1].y;
-		float e_z = poly_r[k+1].z;
-
-		float sx = s_x;
-		float sy = s_y;
-		float ex = e_x; 
-		float ey = e_y;
-		float sz = s_z; 
-		float ez = e_z;
-
-		float dy = (float) ey-sy;
-		float dx = (float) ex-sx;
-		float dydx = (float) dy/dx;	
-		float dxdy = 1/dydx;
-
-		if (dydx>1 || dydx<-1) {
-			
-			float r_inc = (r1-r)/dy;
-			float g_inc = (g1-g)/dy;
-			float b_inc = (b1-b)/dy;
-
-			if (s_y>e_y){
-				sy=e_y;
-				ey=s_y;
-				sx=e_x;
-				sz=e_z;
-				ez=s_z;
-			}
-			float z_inc = (ez-sz)/(ey-sy);		
+		printf("(%f,%f,%f) -> (%f,%f,%f)\n",r,g,b,r1,g1,b1);
 		
-			float i = (float) sx;
-			int inc = 0;
-			for (float j = sy; j<ey; j++) {
-				struct Color col = {
-					r+(inc*r_inc),
-					g+(inc*g_inc),
-					b+(inc*b_inc)
-				};
-				float depth = sz+((j-sy)*z_inc);
-				struct edge_pixel n = {i, col,depth};
-				edges[(int)(j-min)][(int)(i-minx)]=n;	
-				unsigned char c[4] = {wf[0],wf[1],wf[2],255};
-				display->set_pixel((int)i,(int)j,c,1/depth);
-				i+=dxdy;
-				inc++;
-			}
-		}
-		else {
+		int x0 = (int)poly_r[k].x;
+		int y0 = (int)poly_r[k].y;
+		float z0 = poly_r[k].z;
+		int x1 = (int)poly_r[k+1].x; 
+		int y1 = (int)poly_r[k+1].y;
+		float z1 = poly_r[k+1].z;
 
-			float r_inc = (r1-r)/dx;
-			float g_inc = (g1-g)/dx;
-			float b_inc = (b1-b)/dx;
+		int dx = abs(x1-x0);
+		int dy = abs(y1-y0);
+
+		int sx = (x0 < x1) ? 1 : -1;
+		int sy = (y0 < y1) ? 1 : -1;
+		
+		int err = dx - dy;
+		std::vector<struct vector2D> raster;
+		unsigned char c[4] = {wf[0],wf[1],wf[2],255};	
+		while(true) {
+			//struct edge_pixel n = {x0, col,depth};
+			struct vector2D point = {x0,y0};
+			raster.push_back(point);
 			
-			if (s_x>e_x){
-				sx=e_x;
-				ex=s_x;
-				sy=e_y;
-				ey=s_y;
-				sz=e_z;
-				ez=s_z;
-			}
-
-			float z_inc = (ez-sz)/(ey-sy);		
-			float j = (float) sy;
-			int inc = 0;
-			for (float i = sx; i<ex; i++) {
-				struct Color col = {
-					r+(inc*r_inc),
-					g+(inc*g_inc),
-					b+(inc*b_inc)
-				};
-				float depth = sz+((j-sy)*z_inc);
-				struct edge_pixel n = {i,col,depth};
-				edges[(int)(j-min)][(int)(i-minx)]=n;	
-				unsigned char c[4] = {wf[0],wf[1],wf[2],255};
-				display->set_pixel((int)i,(int)j,c,1/depth);
-				j+=dydx;
-				inc++;
-			}
+			if ((x0==x1) && (y0==y1)) break;
+			int e2 = 2 * err;
+			if (e2 > -dy) { err -= dy; x0 += sx; }
+			if (e2 < dx) { err += dx; y0 += sy; }
 		}
+		
+		int no_points = raster.size();
+
+		float delta_r = r1-r;
+		float delta_g = g1-g;
+		float delta_b = b1-b;
+		float delta_z = z1-z0;
+		
+		//printf("deltas (%f,%f,%f)\n",delta_r,delta_g,delta_b);
+
+		for (int i = 0; i<no_points; i++) {
+			float prop = (float) i/no_points;
+			int x = raster[i].x;
+			int y = raster[i].y;
+			/*
+			printf("-------------------\n");
+			printf("(%f,", r + (prop*delta_r));
+			printf("%f,", g + (prop*delta_g));
+			printf("%f)\n", b + (prop*delta_b));
+			printf("(%i,", (unsigned char) (r + (prop*delta_r)));
+			printf("%i,", (unsigned char) (g + (prop*delta_g)));
+			printf("%i)\n", (unsigned char) (b + (prop*delta_b)));
+			printf("-------------------\n");
+			*/
+			struct Color col = {
+				(unsigned char) (r + (prop*delta_r)),
+				(unsigned char) (g + (prop*delta_b)),
+				(unsigned char) (b + (prop*delta_g))
+			};
+			float depth = z0 + (prop*delta_z);
+			struct edge_pixel n = {x,col,depth};
+			edges[y-min][x-minx]=n;
+			unsigned char c[4] = {col.r,col.g,col.b,255};	
+			display->set_pixel(x,y,c,1/depth);
+		}
+		
 	}
 }
 
@@ -286,11 +267,16 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 		
 		//RASTER SPACE
 		std::vector <struct Color> vertex_attributes = {
-				
-			{fill,fill,fill},
-			{fill,fill,fill},
-			{fill,fill,fill},
-			{fill,fill,fill},
+		
+			{255,0,0},
+			{0,255,0},
+			{0,0,255},
+			{255,0,0}
+		
+			//{fill,fill,fill},
+			//{fill,fill,fill},
+			//{fill,fill,fill},
+			//{fill,fill,fill},
 
 		};
 	
@@ -302,6 +288,7 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 		std::vector <std::vector<struct edge_pixel>> pairs(range+2,v);
 
 		get_pairs(poly_r,pairs,vertex_attributes,min,minx);
+
 		for (int l = 0; l<range+2; l++) {
 			std::vector<struct edge_pixel> s = pairs[l];
 			int yval = l+min;
@@ -335,9 +322,9 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 			float startz = s[is].depth;			
 			float endz = s[il].depth;			
 				
-			float startr = s[is].c.r;			
-			float startg = s[is].c.g;			
-			float startb = s[is].c.b;			
+			float startr = (float) s[is].c.r;			
+			float startg = (float) s[is].c.g;			
+			float startb = (float) s[is].c.b;			
 
 
 			float r_inc = (s[il].c.r - s[is].c.r)/(last-first);
@@ -348,9 +335,9 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 			for (int n=first; n<last; n++) {
 				if (s[n-minx].x != -1)
 					continue;
-				unsigned char r = startr+(r_inc*(n-first));
-				unsigned char g = startg+(g_inc*(n-first));
-				unsigned char b = startb+(b_inc*(n-first));
+				unsigned char r = (unsigned char) (startr+(r_inc*(n-first)));
+				unsigned char g = (unsigned char) (startg+(g_inc*(n-first)));
+				unsigned char b = (unsigned char) (startb+(b_inc*(n-first)));
 				float z = startz+(z_inc*(n-first));
 				unsigned char color[4] = {
 					r,g,b,255
@@ -399,13 +386,13 @@ void initialize() {
 	//load_model("models/Tree low.obj",models);
 	//load_model("models/Gel Gun.obj",models);
 	//load_model("models/WindMill.obj",models);
-	//load_model("models/cube.obj",models);
+	load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
 	//load_model("models/low-poly-mill.obj",models);
 	//load_model("models/suzanne.obj",models);
 	//load_model("models/monkey.obj",models);
 	//load_model("models/camera.obj",models);
-	load_model("models/Lowpoly_tree_sample.obj",models);
+	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
 	//load_model("models/Jeep_Renegade_2016.obj",models);
 	//load_model("models/house_plant.obj",models);

@@ -6,6 +6,11 @@ struct vector3D {
 	float z;
 };
 
+struct vector2D {
+	int x;
+	int y;
+};
+
 class Vec3 {
 
 	public:
