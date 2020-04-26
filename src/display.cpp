@@ -9,13 +9,21 @@ Display::Display(int width, int height, std::string title) {
 	
 }
 
+
+void Display::set_clear_color(unsigned char color[4]) {
+	this->clc[0]=color[0];
+	this->clc[1]=color[1];
+	this->clc[2]=color[2];
+	this->clc[3]=color[3];
+}
+
 void Display::clear_buffer() {
 	for (int i = 0; i<this->width; i++) {
 		for (int j = 0; j<this->height; j++) {
-			this->buffer[i][j][0]=255;	
-			this->buffer[i][j][1]=this->clc[0];
+			this->buffer[i][j][0]=this->clc[3];	
+			this->buffer[i][j][1]=this->clc[2];
 			this->buffer[i][j][2]=this->clc[1];
-			this->buffer[i][j][3]=this->clc[2];
+			this->buffer[i][j][3]=this->clc[0];
 			this->depth_buffer[i][j]=10000000000;	
 		}
 	}

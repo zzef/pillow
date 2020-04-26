@@ -35,6 +35,7 @@ class Display {
 		void flip_buffer();
 		void set_pixel(int x, int y, unsigned char* color, float depth);
 		void destroy();
+		void set_clear_color(unsigned char color[4]);
 
 	private:
 		void prepare_buffers();

@@ -31,8 +31,8 @@ struct viewport {
 };
 
 const unsigned char fill = 70;
-const unsigned char wf[3] = {50,50,50};
-
+const unsigned char wf[3] = {120,120,120};
+unsigned char clear_color[4] = {40,40,40,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -396,38 +396,38 @@ void render_mesh(Mesh *m) {
 
 void initialize() {
 
-	load_model("models/Tree low.obj",models);
-	load_model("models/Gel Gun.obj",models);
-	load_model("models/WindMill.obj",models);
-	load_model("models/cube.obj",models);
-	load_model("models/Love.obj",models);
-	load_model("models/low-poly-mill.obj",models);
-	load_model("models/suzanne.obj",models);
-	load_model("models/monkey.obj",models);
-	load_model("models/camera.obj",models);
+	//load_model("models/Tree low.obj",models);
+	//load_model("models/Gel Gun.obj",models);
+	//load_model("models/WindMill.obj",models);
+	//load_model("models/cube.obj",models);
+	//load_model("models/Love.obj",models);
+	//load_model("models/low-poly-mill.obj",models);
+	//load_model("models/suzanne.obj",models);
+	//load_model("models/monkey.obj",models);
+	//load_model("models/camera.obj",models);
 	load_model("models/Lowpoly_tree_sample.obj",models);
-	load_model("models/vehicle.obj",models);
-	load_model("models/Jeep_Renegade_2016.obj",models);
-	load_model("models/house_plant.obj",models);
-	load_model("models/boat.obj",models);
-	load_model("models/casa.obj",models);
-	load_model("models/well.obj",models);
-	load_model("models/crow.obj",models);
-	load_model("models/tank.obj",models);
-	load_model("models/drill.obj",models);
-	load_model("models/Plane.obj",models);
-	load_model("models/tugboat.obj",models);
-	load_model("models/Suzuki_Carry.obj",models);
-	load_model("models/snowcat.obj",models);
-	load_model("models/car.obj",models);
-	load_model("models/tractor.obj",models);
-	load_model("models/treecartoon.obj",models);
-	load_model("models/lighthouse.obj",models);
-	load_model("models/rallycar.obj",models);
-	load_model("models/voxel.obj",models);
-	load_model("models/lowpolytree.obj",models);
+	//load_model("models/vehicle.obj",models);
+	//load_model("models/Jeep_Renegade_2016.obj",models);
+	//load_model("models/house_plant.obj",models);
+	//load_model("models/boat.obj",models);
+	//load_model("models/casa.obj",models);
+	//load_model("models/well.obj",models);
+	//load_model("models/crow.obj",models);
+	//load_model("models/tank.obj",models);
+	//load_model("models/drill.obj",models);
+	//load_model("models/Plane.obj",models);
+	//load_model("models/tugboat.obj",models);
+	//load_model("models/Suzuki_Carry.obj",models);
+	//load_model("models/snowcat.obj",models);
+	//load_model("models/car.obj",models);
+	//load_model("models/tractor.obj",models);
+	//load_model("models/treecartoon.obj",models);
+	//load_model("models/lighthouse.obj",models);
+	//load_model("models/rallycar.obj",models);
+	//load_model("models/voxel.obj",models);
+	//load_model("models/lowpolytree.obj",models);
 
-	selected = 11;
+	selected = 0;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
@@ -455,6 +455,7 @@ int main(int argc, char* args[]) {
 	
 	display = new Display(WIN_WIDTH,WIN_HEIGHT,WINDOW_TITLE);
 	display->init();
+	display->set_clear_color(clear_color);
 	int frames = 0;
 	clock_t before = clock();
 	initialize();
