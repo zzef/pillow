@@ -30,7 +30,7 @@ struct viewport {
 	float h;
 };
 
-const unsigned char fill = 120;
+const unsigned char fill = 70;
 const unsigned char wf[3] = {50,50,50};
 
 bool no_clipping=false;
@@ -368,7 +368,7 @@ void render_mesh(Mesh *m) {
 	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -6.0f;
+	float ty = -3.0f;
 	float tz = -22.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
@@ -377,10 +377,10 @@ void render_mesh(Mesh *m) {
 		
 		struct vertex* v = &(m->v_list[vtx]);
 		//Applying matrix projection to enter clip space				
-		float x = (float) ( v->x * pm[0][0] ) + ( v->y * pm[1][0] ) + ( v->z * pm[2][0] ) + ( v->w * pm[3][0] );
-		float y = (float) ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
-		float z = (float) ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
-		float w = (float) ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
+		float x = ( v->x * pm[0][0] ) + ( v->y * pm[1][0] ) + ( v->z * pm[2][0] ) + ( v->w * pm[3][0] );
+		float y = ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
+		float z = ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
+		float w = ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
 		struct vertex c = {x,y,z,w};
 		clip_coords.push_back(c);
 
@@ -427,7 +427,7 @@ void initialize() {
 	load_model("models/voxel.obj",models);
 	load_model("models/lowpolytree.obj",models);
 
-	selected = 4;
+	selected = 7;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
@@ -458,7 +458,6 @@ int main(int argc, char* args[]) {
 	int frames = 0;
 	clock_t before = clock();
 	initialize();
-	//return 0;
 	while(1) {
 		display->clear_buffer();
 		if((clock() - before) / CLOCKS_PER_SEC > 1) {
@@ -471,7 +470,6 @@ int main(int argc, char* args[]) {
 		display->flip_buffer();
 		frames++;
 	}
-	//Quit SDL
 	display->destroy();
 
 	return 0;
