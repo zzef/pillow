@@ -9,5 +9,5 @@ Pillow is a software rendering engine built in C++. So far the engine features:
 - Back-face culling
 
 Demo
+
 <img align="center" src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample.gif">
-![Alt Text](https://raw.githubusercontent.com/zzef/pillow/master/docs/sample.gif)
