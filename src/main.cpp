@@ -58,9 +58,8 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 	std::vector<struct Color> v_a, int min,int minx
 ) {
 
-	printf("newting\n");
-	for (int k = 0; k<poly_r.size()-2; k++) {
-
+	for (int k = 0; k<poly_r.size()-1; k++) {
+		
 		float r = (float) v_a[k].r;
 		float g = (float) v_a[k].g;
 		float b = (float) v_a[k].b;
@@ -68,8 +67,6 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 		float r1 = (float) v_a[k+1].r;
 		float g1 = (float) v_a[k+1].g;
 		float b1 = (float) v_a[k+1].b;
-
-		printf("(%f,%f,%f) -> (%f,%f,%f)\n",r,g,b,r1,g1,b1);
 		
 		int x0 = (int)poly_r[k].x;
 		int y0 = (int)poly_r[k].y;
@@ -88,7 +85,6 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 		std::vector<struct vector2D> raster;
 		unsigned char c[4] = {wf[0],wf[1],wf[2],255};	
 		while(true) {
-			//struct edge_pixel n = {x0, col,depth};
 			struct vector2D point = {x0,y0};
 			raster.push_back(point);
 			
@@ -104,35 +100,23 @@ void get_pairs(std::vector<struct vector3D> poly_r,
 		float delta_g = g1-g;
 		float delta_b = b1-b;
 		float delta_z = z1-z0;
-		
-		//printf("deltas (%f,%f,%f)\n",delta_r,delta_g,delta_b);
 
 		for (int i = 0; i<no_points; i++) {
 			float prop = (float) i/no_points;
 			int x = raster[i].x;
 			int y = raster[i].y;
-			/*
-			printf("-------------------\n");
-			printf("(%f,", r + (prop*delta_r));
-			printf("%f,", g + (prop*delta_g));
-			printf("%f)\n", b + (prop*delta_b));
-			printf("(%i,", (unsigned char) (r + (prop*delta_r)));
-			printf("%i,", (unsigned char) (g + (prop*delta_g)));
-			printf("%i)\n", (unsigned char) (b + (prop*delta_b)));
-			printf("-------------------\n");
-			*/
+			
 			struct Color col = {
 				(unsigned char) (r + (prop*delta_r)),
-				(unsigned char) (g + (prop*delta_b)),
-				(unsigned char) (b + (prop*delta_g))
+				(unsigned char) (g + (prop*delta_g)),
+				(unsigned char) (b + (prop*delta_b))
 			};
 			float depth = z0 + (prop*delta_z);
 			struct edge_pixel n = {x,col,depth};
 			edges[y-min][x-minx]=n;
-			unsigned char c[4] = {col.r,col.g,col.b,255};	
+			//unsigned char c[4] = {col.r,col.g,col.b,255};	
 			display->set_pixel(x,y,c,1/depth);
 		}
-		
 	}
 }
 
@@ -386,7 +370,7 @@ void initialize() {
 	//load_model("models/Tree low.obj",models);
 	//load_model("models/Gel Gun.obj",models);
 	//load_model("models/WindMill.obj",models);
-	load_model("models/cube.obj",models);
+	//load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
 	//load_model("models/low-poly-mill.obj",models);
 	//load_model("models/suzanne.obj",models);
@@ -394,7 +378,7 @@ void initialize() {
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	//load_model("models/Jeep_Renegade_2016.obj",models);
+	load_model("models/Jeep_Renegade_2016.obj",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
