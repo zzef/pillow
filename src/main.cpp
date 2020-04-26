@@ -339,7 +339,7 @@ void render_mesh(Mesh *m) {
 	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -3.0f;
+	float ty = -6.0f;
 	float tz = -22.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
@@ -373,12 +373,12 @@ void initialize() {
 	//load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
 	//load_model("models/low-poly-mill.obj",models);
-	//load_model("models/suzanne.obj",models);
+	load_model("models/suzanne.obj",models);
 	//load_model("models/monkey.obj",models);
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	load_model("models/Jeep_Renegade_2016.obj",models);
+	//load_model("models/Jeep_Renegade_2016.obj",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
