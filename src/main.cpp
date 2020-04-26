@@ -252,15 +252,15 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 		//RASTER SPACE
 		std::vector <struct Color> vertex_attributes = {
 		
-			{255,0,0},
-			{0,255,0},
-			{0,0,255},
-			{255,0,0}
+			//{255,0,0},
+			//{0,255,0},
+			//{0,0,255},
+			//{255,0,0}
 		
-			//{fill,fill,fill},
-			//{fill,fill,fill},
-			//{fill,fill,fill},
-			//{fill,fill,fill},
+			{fill,fill,fill},
+			{fill,fill,fill},
+			{fill,fill,fill},
+			{fill,fill,fill},
 
 		};
 	
@@ -373,12 +373,12 @@ void initialize() {
 	//load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
 	//load_model("models/low-poly-mill.obj",models);
-	//load_model("models/suzanne.obj",models);
+	load_model("models/suzanne.obj",models);
 	//load_model("models/monkey.obj",models);
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	load_model("models/Jeep_Renegade_2016.obj",models);
+	//load_model("models/Jeep_Renegade_2016.obj",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
