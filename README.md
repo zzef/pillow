@@ -7,3 +7,7 @@ Pillow is a software rendering engine built in C++. So far the engine features:
 - Rasterization and color interpolation
 - Depth-buffering (Now renders solid wireframes)
 - Back-face culling
+
+Demo
+
+![Alt Text](https://raw.githubusercontent.com/zzef/pillow/master/docs/sample.gif)
