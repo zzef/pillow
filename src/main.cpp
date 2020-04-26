@@ -4,8 +4,8 @@
 #include "../include/vector.h"
 #include "../include/display.h"
 
-#define WIN_WIDTH 1024
-#define WIN_HEIGHT 768
+#define WIN_WIDTH 1280
+#define WIN_HEIGHT 720
 #define RESOLUTION 1
 #define WINDOW_TITLE "Pillow"
 
@@ -427,7 +427,7 @@ void initialize() {
 	load_model("models/voxel.obj",models);
 	load_model("models/lowpolytree.obj",models);
 
-	selected = 7;
+	selected = 11;
 	models[selected]->normalize();
 	models[selected]->triangulate();
 	models[selected]->print_mesh();
