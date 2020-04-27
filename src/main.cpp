@@ -90,6 +90,7 @@ void get_pairs(struct vector3D poly_r[4],
 		int y1 = (int)poly_r[k+1].y;
 		float z1 = poly_r[k+1].z;
 
+
 		int dx = abs(x1-x0);
 		int dy = abs(y1-y0);
 
@@ -189,32 +190,17 @@ void clip_triangle(std::vector<long>& ply, std::vector<struct vertex> &new_poly,
 
 }
 
-void get_triangle(std::vector<long>& ply, std::vector<struct vertex*> &new_poly, 
-	std::vector<struct vertex>& clip_coords
-) {	
-	for (int j = 0; j<ply.size(); j++) {
+
+void render_triangle(struct vertex clip_coords[4]) {
 	
-		long sv = ply[j];	
-		struct vertex* s = &clip_coords[sv-1];
-		//get normal here and put it inside;
-		new_poly.push_back(s);		
-		
-	}
-	
-}	
 
-void render_triangle(int i, Mesh *m, std::vector <struct vertex> &clip_coords) {
-
+		struct vertex* v0 = &clip_coords[0];
+		struct vertex* v1 = &clip_coords[1];
+		struct vertex* v2 = &clip_coords[2];
 		
-		struct vertex v0 = clip_coords[m->tf_list[i][0]-1];
-		struct vertex v1 = clip_coords[m->tf_list[i][1]-1];
-		struct vertex v2 = clip_coords[m->tf_list[i][2]-1];
-		
-		struct vertex *new_poly[4]={&v0,&v1,&v2,&v0};
-
-		Vec3 vec0 (v0.x,v0.y,v0.w);
-		Vec3 vec1 (v1.x,v1.y,v1.w);
-		Vec3 vec2 (v2.x,v2.y,v2.w);
+		Vec3 vec0 (v0->x,v0->y,v0->w);
+		Vec3 vec1 (v1->x,v1->y,v1->w);
+		Vec3 vec2 (v2->x,v2->y,v2->w);
 
 		Vec3 res1 = vec0.res(vec1);
 		Vec3 res2 = vec0.res(vec2);
@@ -234,16 +220,13 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex> &clip_coords) {
 		int min = 100000000;
 		int minx = 100000000;
 		for (int k = 0; k<=3; k++) {
-			
-			struct vertex *v = new_poly[k];
 
+			struct vertex *v = &clip_coords[k];
 			float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
 			float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
 			float z = v->z/v->w;
+			struct vector3D r1 = {x,y,1/z};	
 			
-			struct vector3D r1 = {x,y,1/z};
-			unsigned char c[4] = {wf[0],wf[1],wf[2],255};
-			display->set_pixel(x,y,c,1);
 			poly_r[k]=r1;
 			if (y>max) {
 				max = y;
@@ -251,7 +234,6 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex> &clip_coords) {
 			if (y<min) {
 				min = y;
 			}
-
 			if (x>maxx) {
 				maxx = x;
 			}
@@ -260,18 +242,14 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex> &clip_coords) {
 			}
 
 		}
-		
 		//RASTER SPACE
-			
 		const int range = max-min+1;	
 		const int rangex = maxx-minx+1;	
 		struct edge_pixel empty;
 		empty.x=-1;
-		return;
 		std::vector <struct edge_pixel> v(rangex,empty);
 		std::vector <std::vector<struct edge_pixel>> pairs(range,v);
 		get_pairs(poly_r,pairs,vertex_attributes,min,minx);
-
 		for (int l = 0; l<range; l++) {
 			std::vector<struct edge_pixel> s = pairs[l];
 			int yval = l+min;
@@ -334,7 +312,6 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex> &clip_coords) {
 void render_mesh(Mesh *m) {
 
 	unsigned char color[4] = {120,120,120,255};
-	std::vector <struct vertex>clip_coords;
 	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
@@ -343,21 +320,22 @@ void render_mesh(Mesh *m) {
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
-	for (int vtx = 0; vtx<m->vertices(); vtx++) {
-		
-		struct vertex* v = &(m->v_list[vtx]);
-		//Applying matrix projection to enter clip space				
-		float x = ( v->x * pm[0][0] ) + ( v->y * pm[1][0] ) + ( v->z * pm[2][0] ) + ( v->w * pm[3][0] );
-		float y = ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
-		float z = ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
-		float w = ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
-		struct vertex vert = {x,y,z,w};
-		clip_coords.push_back(vert);
-
-	}
-
 	for (int i = 0; i<m->triangles(); i++) {
-		render_triangle(i,m,clip_coords);
+		struct vertex clip_coords[4];
+		for (int j = 0; j<m->tf_list[i].size(); j++) {
+	
+			struct vertex* v = &(m->v_list[m->tf_list[i][j]-1]);
+
+			//Applying matrix projection to enter clip space				
+			float x = ( v->x * pm[0][0] ) + ( v->y * pm[1][0] ) + ( v->z * pm[2][0] ) + ( v->w * pm[3][0] );
+			float y = ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
+			float z = ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
+			float w = ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
+
+			struct vertex vert = {x,y,z,w};
+			clip_coords[j] = vert;
+		}
+		render_triangle(clip_coords);
 	}
 	
 	m->translate(-tx,-ty,-tz);
