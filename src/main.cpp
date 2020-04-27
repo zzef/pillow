@@ -50,15 +50,30 @@ const float pm[4][4] = {
 
 };
 
+std::vector <struct Color> vertex_attributes = {
+		
+			//{255,0,0},
+			//{0,255,0},
+			//{0,0,255},
+			//{255,0,0}
+		
+			{fill,fill,fill},
+			{fill,fill,fill},
+			{fill,fill,fill},
+			{fill,fill,fill},
+
+		};
+
+
 std::vector<Mesh*> models;
 Display* display;
 
-void get_pairs(std::vector<struct vector3D> poly_r,
+void get_pairs(struct vector3D poly_r[4],
  	std::vector <std::vector<struct edge_pixel>>& edges,
-	std::vector<struct Color> v_a, int min,int minx
+	std::vector<struct Color> &v_a, int min,int minx
 ) {
 
-	for (int k = 0; k<poly_r.size()-1; k++) {
+	for (int k = 0; k<3; k++) {
 		
 		float r = (float) v_a[k].r;
 		float g = (float) v_a[k].g;
@@ -188,18 +203,14 @@ void get_triangle(std::vector<long>& ply, std::vector<struct vertex*> &new_poly,
 	
 }	
 
-void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
+void render_triangle(int i, Mesh *m, std::vector <struct vertex> &clip_coords) {
 
-		std::vector <struct vertex*> new_poly;
-		get_triangle(m->tf_list[i],new_poly,clip_coords);	
-		//check dot product of camera to normal here and continue if negative
 		
-		if (new_poly.size()<1)
-			return;
-
-		struct vertex v0 = *new_poly[0];
-		struct vertex v1 = *new_poly[1];
-		struct vertex v2 = *new_poly[2];
+		struct vertex v0 = clip_coords[m->tf_list[i][0]-1];
+		struct vertex v1 = clip_coords[m->tf_list[i][1]-1];
+		struct vertex v2 = clip_coords[m->tf_list[i][2]-1];
+		
+		struct vertex *new_poly[4]={&v0,&v1,&v2,&v0};
 
 		Vec3 vec0 (v0.x,v0.y,v0.w);
 		Vec3 vec1 (v1.x,v1.y,v1.w);
@@ -215,14 +226,14 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 
 		if (f_norm.dot(diff)<0) 
 			return;
-	
-		std::vector <struct vector3D> poly_r;		
+
+		struct vector3D poly_r[4];
 		//PERSPECTIVE DIVIDE HERE
 		int max = 0;
 		int maxx = 0;
 		int min = 100000000;
 		int minx = 100000000;
-		for (int k = 0; k<new_poly.size(); k++) {
+		for (int k = 0; k<=3; k++) {
 			
 			struct vertex *v = new_poly[k];
 
@@ -233,9 +244,7 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 			struct vector3D r1 = {x,y,1/z};
 			unsigned char c[4] = {wf[0],wf[1],wf[2],255};
 			display->set_pixel(x,y,c,1);
-			return;
-			poly_r.push_back(r1);
-
+			poly_r[k]=r1;
 			if (y>max) {
 				max = y;
 			}
@@ -250,33 +259,20 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 				minx = x;
 			}
 
-		}	
+		}
 		
 		//RASTER SPACE
-		std::vector <struct Color> vertex_attributes = {
-		
-			//{255,0,0},
-			//{0,255,0},
-			//{0,0,255},
-			//{255,0,0}
-		
-			{fill,fill,fill},
-			{fill,fill,fill},
-			{fill,fill,fill},
-			{fill,fill,fill},
-
-		};
-	
-		const int range = max-min;	
-		const int rangex = maxx-minx;	
+			
+		const int range = max-min+1;	
+		const int rangex = maxx-minx+1;	
 		struct edge_pixel empty;
 		empty.x=-1;
-		std::vector <struct edge_pixel> v(rangex+2,empty);
-		std::vector <std::vector<struct edge_pixel>> pairs(range+2,v);
-
+		return;
+		std::vector <struct edge_pixel> v(rangex,empty);
+		std::vector <std::vector<struct edge_pixel>> pairs(range,v);
 		get_pairs(poly_r,pairs,vertex_attributes,min,minx);
 
-		for (int l = 0; l<range+2; l++) {
+		for (int l = 0; l<range; l++) {
 			std::vector<struct edge_pixel> s = pairs[l];
 			int yval = l+min;
 			float smallest = 100000000;
@@ -343,7 +339,7 @@ void render_mesh(Mesh *m) {
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
 	float ty = -1.0f;
-	float tz = -28.0f;
+	float tz = -26.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -355,20 +351,14 @@ void render_mesh(Mesh *m) {
 		float y = ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
 		float z = ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
 		float w = ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
-		//struct vertex c = {x,y,z,w};
-		//clip_coords.push_back(c);
-
-			float x1 = (x/w)*WIN_WIDTH + (WIN_WIDTH/2);
-			float y1 = (-y/w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-
-			unsigned char c[4] = {wf[0],wf[1],wf[2],255};
-			display->set_pixel(x1,y1,c,1);
+		struct vertex vert = {x,y,z,w};
+		clip_coords.push_back(vert);
 
 	}
 
-	//for (int i = 0; i<m->triangles(); i++) {
-	//	render_triangle(i,m,clip_coords);
-	//}
+	for (int i = 0; i<m->triangles(); i++) {
+		render_triangle(i,m,clip_coords);
+	}
 	
 	m->translate(-tx,-ty,-tz);
 	m->scale(1/sf,1/sf,1/sf);
