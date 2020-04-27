@@ -231,6 +231,9 @@ void render_triangle(int i, Mesh *m, std::vector <struct vertex>clip_coords) {
 			float z = v->z/v->w;
 			
 			struct vector3D r1 = {x,y,1/z};
+			unsigned char c[4] = {wf[0],wf[1],wf[2],255};
+			display->set_pixel(x,y,c,1);
+			return;
 			poly_r.push_back(r1);
 
 			if (y>max) {
@@ -339,8 +342,8 @@ void render_mesh(Mesh *m) {
 	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -6.0f;
-	float tz = -22.0f;
+	float ty = -1.0f;
+	float tz = -28.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -352,14 +355,20 @@ void render_mesh(Mesh *m) {
 		float y = ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
 		float z = ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
 		float w = ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
-		struct vertex c = {x,y,z,w};
-		clip_coords.push_back(c);
+		//struct vertex c = {x,y,z,w};
+		//clip_coords.push_back(c);
+
+			float x1 = (x/w)*WIN_WIDTH + (WIN_WIDTH/2);
+			float y1 = (-y/w)*WIN_HEIGHT + (WIN_HEIGHT/2);
+
+			unsigned char c[4] = {wf[0],wf[1],wf[2],255};
+			display->set_pixel(x1,y1,c,1);
 
 	}
 
-	for (int i = 0; i<m->triangles(); i++) {
-		render_triangle(i,m,clip_coords);
-	}
+	//for (int i = 0; i<m->triangles(); i++) {
+	//	render_triangle(i,m,clip_coords);
+	//}
 	
 	m->translate(-tx,-ty,-tz);
 	m->scale(1/sf,1/sf,1/sf);
@@ -373,7 +382,7 @@ void initialize() {
 	//load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
 	//load_model("models/low-poly-mill.obj",models);
-	load_model("models/suzanne.obj",models);
+	//load_model("models/suzanne.obj",models);
 	//load_model("models/monkey.obj",models);
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
@@ -387,7 +396,7 @@ void initialize() {
 	//load_model("models/tank.obj",models);
 	//load_model("models/drill.obj",models);
 	//load_model("models/Plane.obj",models);
-	//load_model("models/tugboat.obj",models);
+	load_model("models/tugboat.obj",models);
 	//load_model("models/Suzuki_Carry.obj",models);
 	//load_model("models/snowcat.obj",models);
 	//load_model("models/car.obj",models);
@@ -411,11 +420,7 @@ void initialize() {
 }
 
 void render() {
-
-	unsigned char color[4] = {120,120,120,255};
-	unsigned char red[4] = {255,0,0,255};
 	render_mesh(models[selected]);	
-
 }
 
 void update() {

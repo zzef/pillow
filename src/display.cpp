@@ -44,12 +44,7 @@ void Display::init() {
 		SDL_WINDOW_SHOWN
 	);
 	//We need a renderer to do our rendering
-	this->renderer = SDL_CreateRenderer(this->window,-1,0);
-	//Set the clear color for our renderer
-	SDL_SetRenderDrawColor(this->renderer,30,30,30,255);
-	//clear
-	SDL_RenderClear(this->renderer);
-	
+	this->renderer = SDL_CreateRenderer(this->window,-1,SDL_RENDERER_ACCELERATED);
 	//Create frame
 	this->Frame = SDL_CreateTexture(this->renderer, SDL_PIXELFORMAT_RGBA8888,
 		SDL_TEXTUREACCESS_STREAMING, this->width, this->height
@@ -68,8 +63,7 @@ void Display::flip_buffer() {
 		}
 	}
 	SDL_UnlockTexture(this->Frame);
-	SDL_Rect destination = {0,0,this->width,this->height};
-	SDL_RenderCopy(renderer,Frame,NULL,&destination);		
+	SDL_RenderCopy(renderer,Frame,NULL,NULL);		
 	//show
 	SDL_RenderPresent(this->renderer);
 }
