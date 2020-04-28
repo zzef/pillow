@@ -1,5 +1,4 @@
 CC = g++
-FLAGS = -O3
 LIBS = -lSDL2
 IDIR = include
 BINC = $(IDIR)/includes.h
@@ -10,7 +9,7 @@ OBJDIR = .
 DEPS = $(OBJDIR)/vector.o $(OBJDIR)/Mesh.o $(OBJDIR)/Mesh_loader.o  $(OBJDIR)/display.o 
 
 $(BDIR)/pillow: $(DEPS) $(OBJDIR)/main.o
-	$(CC) -o $@ $^ $(LIBS) $(FLAGS)
+	$(CC) -o $@ $^ $(LIBS)
 
 $(OBJDIR)/vector.o: $(SDIR)/vector.cpp $(IDIR)/vector.h $(BINC)
 	$(CC) -c -o $@ $<
