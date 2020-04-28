@@ -30,9 +30,14 @@ struct viewport {
 	float h;
 };
 
+
+bool draw_wireframe = true;
+struct vector3D poly_r[4];
+struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 const unsigned char fill = 70;
-const unsigned char wf[3] = {120,120,120};
+const unsigned char wf[3] = {120,120,120};					
+unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
 unsigned char clear_color[4] = {40,40,40,255};
 bool no_clipping=false;
 long selected = 0;
@@ -52,7 +57,7 @@ const float pm[4][4] = {
 
 };
 
-std::vector <struct Color> vertex_attributes = {
+struct Color vertex_attributes[4] = {
 		
 			//{255,0,0},
 			//{0,255,0},
@@ -71,7 +76,7 @@ std::vector<Mesh*> models;
 Display* display;
 
 void get_pairs(struct vector3D poly_r[4],
-	std::vector<struct Color> &v_a, int min,int minx
+	struct Color v_a[4], int min,int minx
 ) {
 
 	for (int k = 0; k<3; k++) {
@@ -99,19 +104,19 @@ void get_pairs(struct vector3D poly_r[4],
 		int sy = (y0 < y1) ? 1 : -1;
 		
 		int err = dx - dy;
-		std::vector<struct vector2D> raster;
 		unsigned char c[4] = {wf[0],wf[1],wf[2],255};	
+		int index = 0;
 		while(true) {
 			struct vector2D point = {x0,y0};
-			raster.push_back(point);
-			
+			curr_raster[index]=point;
 			if ((x0==x1) && (y0==y1)) break;
 			int e2 = 2 * err;
 			if (e2 > -dy) { err -= dy; x0 += sx; }
 			if (e2 < dx) { err += dx; y0 += sy; }
+			index++;
 		}
 		
-		int no_points = raster.size();
+		int no_points = index;
 
 		float delta_r = r1-r;
 		float delta_g = g1-g;
@@ -120,8 +125,8 @@ void get_pairs(struct vector3D poly_r[4],
 
 		for (int i = 0; i<no_points; i++) {
 			float prop = (float) i/no_points;
-			int x = raster[i].x;
-			int y = raster[i].y;
+			int x = curr_raster[i].x;
+			int y = curr_raster[i].y;
 			
 			struct Color col = {
 				(unsigned char) (r + (prop*delta_r)),
@@ -219,7 +224,6 @@ void render_triangle(struct vertex clip_coords[4]) {
 		if (f_norm.dot(diff)<0) 
 			return;
 
-		struct vector3D poly_r[4];
 		//PERSPECTIVE DIVIDE HERE
 		int max = 0;
 		int maxx = 0;
@@ -250,7 +254,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 		}
 		//RASTER SPACE
 		const int range = max-min+1;	
-		const int rangex = maxx-minx+1;	
+		const int rangex = maxx-minx+1;
 		get_pairs(poly_r,vertex_attributes,min,minx);
 		for (int l = 0; l<range; l++) {
 			int yval = l+min;
@@ -273,7 +277,6 @@ void render_triangle(struct vertex clip_coords[4]) {
 					il=b;
 				}
 			}
-	
 			int first = smallest;
 			int last = largest;
 			
@@ -300,10 +303,17 @@ void render_triangle(struct vertex clip_coords[4]) {
 				float prop = (float) (n-minx)/(last-minx);			
 				float z = startz+ (prop*delta_z);
 				if (edge_pixels[l][n-minx].x != -1) {
-					unsigned char color[4] = {
-						wf[0],wf[1],wf[2],255
-					};
-					display->set_pixel(n,yval,color,1/z);
+					if (!draw_wireframe) {
+						unsigned char col[4] = {
+							edge_pixels[l][n-minx].c.r,
+							edge_pixels[l][n-minx].c.g,
+							edge_pixels[l][n-minx].c.b,
+							255
+						};
+						display->set_pixel(n,yval,col,1/z);
+					} else {
+						display->set_pixel(n,yval,wfc,1/z);
+					}
 					edge_pixels[l][n-minx]=empty;	
 					continue;
 				}
@@ -325,8 +335,8 @@ void render_mesh(Mesh *m) {
 	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -5.0f;
-	float tz = -22.0f;
+	float ty = -4.0f;
+	float tz = -30.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -365,7 +375,7 @@ void initialize() {
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	load_model("models/Jeep_Renegade_2016.obj",models);
+	//load_model("models/Jeep_Renegade_2016.obj",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
@@ -374,7 +384,7 @@ void initialize() {
 	//load_model("models/tank.obj",models);
 	//load_model("models/drill.obj",models);
 	//load_model("models/Plane.obj",models);
-	//load_model("models/tugboat.obj",models);
+	load_model("models/tugboat.obj",models);
 	//load_model("models/Suzuki_Carry.obj",models);
 	//load_model("models/snowcat.obj",models);
 	//load_model("models/car.obj",models);
