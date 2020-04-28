@@ -32,7 +32,6 @@ struct viewport {
 
 
 bool draw_wireframe = true;
-struct vector3D poly_r[4];
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 const unsigned char fill = 70;
@@ -221,6 +220,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 		Vec3 vec4 (0,0,0);
 		Vec3 diff = vec4.res(vec0);
 
+		//backface culling
 		if (f_norm.dot(diff)<0) 
 			return;
 
@@ -229,6 +229,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 		int maxx = 0;
 		int min = 100000000;
 		int minx = 100000000;
+		struct vector3D poly_r[4];
 		for (int k = 0; k<=3; k++) {
 
 			struct vertex *v = &clip_coords[k];
