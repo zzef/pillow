@@ -30,6 +30,7 @@ struct viewport {
 	float h;
 };
 
+struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 const unsigned char fill = 70;
 const unsigned char wf[3] = {120,120,120};
 unsigned char clear_color[4] = {40,40,40,255};
@@ -41,6 +42,7 @@ const float near = 2;
 const int fov = 110;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
+struct edge_pixel empty = {-1,NULL,0};
 const float pm[4][4] = {
 	
 	{ S/aspect_ratio, 0, 0, 0 },
@@ -69,7 +71,6 @@ std::vector<Mesh*> models;
 Display* display;
 
 void get_pairs(struct vector3D poly_r[4],
- 	std::vector <std::vector<struct edge_pixel>>& edges,
 	std::vector<struct Color> &v_a, int min,int minx
 ) {
 
@@ -129,9 +130,7 @@ void get_pairs(struct vector3D poly_r[4],
 			};
 			float depth = z0 + (prop*delta_z);
 			struct edge_pixel n = {x,col,depth};
-			edges[y-min][x-minx]=n;
-			//unsigned char c[4] = {col.r,col.g,col.b,255};	
-			display->set_pixel(x,y,c,1/depth);
+			edge_pixels[y-min][x-minx]=n;
 		}
 	}
 }
@@ -190,10 +189,17 @@ void clip_triangle(std::vector<long>& ply, std::vector<struct vertex> &new_poly,
 
 }
 
+void clear_edge_pixels() {
+	
+	for (int y = 0; y<WIN_HEIGHT; y++) {
+		for (int x = 0; x<WIN_WIDTH; x++) {
+			edge_pixels[y][x]=empty;
+		}
+	}
+}
 
 void render_triangle(struct vertex clip_coords[4]) {
 	
-
 		struct vertex* v0 = &clip_coords[0];
 		struct vertex* v1 = &clip_coords[1];
 		struct vertex* v2 = &clip_coords[2];
@@ -245,68 +251,72 @@ void render_triangle(struct vertex clip_coords[4]) {
 		//RASTER SPACE
 		const int range = max-min+1;	
 		const int rangex = maxx-minx+1;	
-		struct edge_pixel empty;
-		empty.x=-1;
-		std::vector <struct edge_pixel> v(rangex,empty);
-		std::vector <std::vector<struct edge_pixel>> pairs(range,v);
-		get_pairs(poly_r,pairs,vertex_attributes,min,minx);
+		get_pairs(poly_r,vertex_attributes,min,minx);
 		for (int l = 0; l<range; l++) {
-			std::vector<struct edge_pixel> s = pairs[l];
 			int yval = l+min;
-			float smallest = 100000000;
-			float largest = -100000000;
+			int smallest = 100000000;
+			int largest = -100000000;
 			int is = 0;
 			int il = 0;
-			for (int b = 0; b<s.size(); b++) {
+			for (int b = 0; b<rangex; b++) {
 
-				if (s[b].x==-1)
+				if (edge_pixels[l][b].x==-1)
 					continue;
 
-				if (s[b].x < smallest) {
-					smallest=s[b].x;
+				if (edge_pixels[l][b].x < smallest) {
+					smallest=edge_pixels[l][b].x;
 					is=b;
 				}
 
-				if (s[b].x > largest) {
-					largest=s[b].x;
+				if (edge_pixels[l][b].x > largest) {
+					largest=edge_pixels[l][b].x;
 					il=b;
 				}
 			}
 	
-			if (s.size() < 1) {
-				continue;
-			}
-
-			float first = smallest;
-			float last = largest;
+			int first = smallest;
+			int last = largest;
 			
-			float startz = s[is].depth;			
-			float endz = s[il].depth;			
+			//printf("first last - > (%d, %d)\n",first,last);	
+			
+			float startz = edge_pixels[l][is].depth;			
+			float endz = edge_pixels[l][il].depth;			
 				
-			float startr = (float) s[is].c.r;			
-			float startg = (float) s[is].c.g;			
-			float startb = (float) s[is].c.b;			
-
-
-			float r_inc = (s[il].c.r - s[is].c.r)/(last-first);
-			float g_inc = (s[il].c.g - s[is].c.g)/(last-first);
-			float b_inc = (s[il].c.b - s[is].c.b)/(last-first);
-			float z_inc = (endz - startz)/(last-first);
+			float startr = (float) edge_pixels[l][is].c.r;			
+			float startg = (float) edge_pixels[l][is].c.g;			
+			float startb = (float) edge_pixels[l][is].c.b;			
+			
+			float endr = (float) edge_pixels[l][il].c.r;
+			float endg = (float) edge_pixels[l][il].c.g;
+			float endb = (float) edge_pixels[l][il].c.b;
 		
-			for (int n=first; n<last; n++) {
-				if (s[n-minx].x != -1)
+			float delta_z = endz-startz;
+			float delta_r = endr-startr;
+			float delta_g = endg-startg;
+			float delta_b = endb-startb;
+	
+			//printf("first last - > (%d, %d)\n",first,last);	
+			for (int n=first; n<last+1; n++) {
+				float prop = (float) (n-minx)/(last-minx);			
+				float z = startz+ (prop*delta_z);
+				if (edge_pixels[l][n-minx].x != -1) {
+					unsigned char color[4] = {
+						wf[0],wf[1],wf[2],255
+					};
+					display->set_pixel(n,yval,color,1/z);
+					edge_pixels[l][n-minx]=empty;	
 					continue;
-				unsigned char r = (unsigned char) (startr+(r_inc*(n-first)));
-				unsigned char g = (unsigned char) (startg+(g_inc*(n-first)));
-				unsigned char b = (unsigned char) (startb+(b_inc*(n-first)));
-				float z = startz+(z_inc*(n-first));
+				}
+
+				unsigned char r = (unsigned char) (startr + (prop*delta_r));
+				unsigned char g = (unsigned char) (startg + (prop*delta_g));
+				unsigned char b = (unsigned char) (startb + (prop*delta_b));
 				unsigned char color[4] = {
 					r,g,b,255
 				};
 				display->set_pixel(n,yval,color,(1/z));
 			}
 		}
-
 }
 
 void render_mesh(Mesh *m) {
@@ -315,8 +325,8 @@ void render_mesh(Mesh *m) {
 	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -1.0f;
-	float tz = -26.0f;
+	float ty = -5.0f;
+	float tz = -22.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -355,7 +365,7 @@ void initialize() {
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	//load_model("models/Jeep_Renegade_2016.obj",models);
+	load_model("models/Jeep_Renegade_2016.obj",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
@@ -364,7 +374,7 @@ void initialize() {
 	//load_model("models/tank.obj",models);
 	//load_model("models/drill.obj",models);
 	//load_model("models/Plane.obj",models);
-	load_model("models/tugboat.obj",models);
+	//load_model("models/tugboat.obj",models);
 	//load_model("models/Suzuki_Carry.obj",models);
 	//load_model("models/snowcat.obj",models);
 	//load_model("models/car.obj",models);
@@ -400,6 +410,7 @@ int main(int argc, char* args[]) {
 	display = new Display(WIN_WIDTH,WIN_HEIGHT,WINDOW_TITLE);
 	display->init();
 	display->set_clear_color(clear_color);
+	clear_edge_pixels();
 	int frames = 0;
 	clock_t before = clock();
 	initialize();
