@@ -41,9 +41,9 @@ unsigned char clear_color[4] = {40,40,40,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
-const float far = 30;
-const float near = 2;
-const int fov = 110;
+const float far = 20;
+const float near = 1;
+const int fov = 90;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
 struct edge_pixel empty = {-1,NULL,0};
@@ -90,15 +90,16 @@ void get_pairs(struct vector3D poly_r[4],
 		
 		int x0 = (int)poly_r[k].x;
 		int y0 = (int)poly_r[k].y;
-		float z0 = poly_r[k].z;
+		float z0 = (float) poly_r[k].z;
 		int x1 = (int)poly_r[k+1].x; 
 		int y1 = (int)poly_r[k+1].y;
-		float z1 = poly_r[k+1].z;
+		float z1 = (float) poly_r[k+1].z;
 
 
 		int dx = abs(x1-x0);
 		int dy = abs(y1-y0);
 
+		float dydz = (float) (y1-y0)/(z1-z0);
 		int sx = (x0 < x1) ? 1 : -1;
 		int sy = (y0 < y1) ? 1 : -1;
 		
@@ -133,7 +134,7 @@ void get_pairs(struct vector3D poly_r[4],
 				(unsigned char) (b + (prop*delta_b))
 			};
 			float depth = z0 + (prop*delta_z);
-			struct edge_pixel n = {x,col,depth};
+			struct edge_pixel n = {x,col,1/depth};
 			edge_pixels[y-min][x-minx]=n;
 		}
 	}
@@ -235,7 +236,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 			struct vertex *v = &clip_coords[k];
 			float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
 			float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-			float z = v->z/v->w;
+			float z = v->z;
 			struct vector3D r1 = {x,y,1/z};	
 			
 			poly_r[k]=r1;
@@ -311,9 +312,9 @@ void render_triangle(struct vertex clip_coords[4]) {
 							edge_pixels[l][n-minx].c.b,
 							255
 						};
-						display->set_pixel(n,yval,col,1/z);
+						display->set_pixel(n,yval,col,z);
 					} else {
-						display->set_pixel(n,yval,wfc,1/z);
+						display->set_pixel(n,yval,wfc,z);
 					}
 					edge_pixels[l][n-minx]=empty;	
 					continue;
@@ -325,7 +326,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 				unsigned char color[4] = {
 					r,g,b,255
 				};
-				display->set_pixel(n,yval,color,(1/z));
+				display->set_pixel(n,yval,color,z);
 			}
 		}
 }
@@ -333,11 +334,11 @@ void render_triangle(struct vertex clip_coords[4]) {
 void render_mesh(Mesh *m) {
 
 	unsigned char color[4] = {120,120,120,255};
-	float sf = 12;
+	float sf = 2.0f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -3.0f;
-	float tz = -30.0f;
+	float ty = -0.0f;
+	float tz = -6.5f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -395,6 +396,7 @@ void initialize() {
 	//load_model("models/rallycar.obj",models);
 	//load_model("models/voxel.obj",models);
 	//load_model("models/lowpolytree.obj",models);
+	//load_model("models/untitled.obj",models);
 
 	selected = 0;
 	models[selected]->normalize();
