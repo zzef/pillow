@@ -30,14 +30,14 @@ struct viewport {
 	float h;
 };
 
-
+bool backface_culling=true;
 bool draw_wireframe = true;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
-const unsigned char fill = 70;
-const unsigned char wf[3] = {120,120,120};					
+const unsigned char fill = 200;
+const unsigned char wf[3] = {40,40,40};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {40,40,40,255};
+unsigned char clear_color[4] = {100,100,100,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -99,7 +99,6 @@ void get_pairs(struct vector3D poly_r[4],
 		int dx = abs(x1-x0);
 		int dy = abs(y1-y0);
 
-		float dydz = (float) (y1-y0)/(z1-z0);
 		int sx = (x0 < x1) ? 1 : -1;
 		int sy = (y0 < y1) ? 1 : -1;
 		
@@ -124,7 +123,7 @@ void get_pairs(struct vector3D poly_r[4],
 		float delta_z = z1-z0;
 
 		for (int i = 0; i<no_points; i++) {
-			float prop = (float) i/no_points;
+			float prop = (float) i/(no_points-1);
 			int x = curr_raster[i].x;
 			int y = curr_raster[i].y;
 			
@@ -203,27 +202,35 @@ void clear_edge_pixels() {
 	}
 }
 
+void draw_point(int x, int y, float z, int weight) {
+
+	//TODO	
+	
+}
+
 void render_triangle(struct vertex clip_coords[4]) {
 	
-		struct vertex* v0 = &clip_coords[0];
-		struct vertex* v1 = &clip_coords[1];
-		struct vertex* v2 = &clip_coords[2];
-		
-		Vec3 vec0 (v0->x,v0->y,v0->w);
-		Vec3 vec1 (v1->x,v1->y,v1->w);
-		Vec3 vec2 (v2->x,v2->y,v2->w);
+		if (backface_culling) {
+			struct vertex* v0 = &clip_coords[0];
+			struct vertex* v1 = &clip_coords[1];
+			struct vertex* v2 = &clip_coords[2];
+			
+			Vec3 vec0 (v0->x,v0->y,v0->w);
+			Vec3 vec1 (v1->x,v1->y,v1->w);
+			Vec3 vec2 (v2->x,v2->y,v2->w);
+	
+			Vec3 res1 = vec0.res(vec1);
+			Vec3 res2 = vec0.res(vec2);
+	
+			Vec3 f_norm = res1.cross(res2);	
+			
+			Vec3 vec4 (0,0,0);
+			Vec3 diff = vec4.res(vec0);
 
-		Vec3 res1 = vec0.res(vec1);
-		Vec3 res2 = vec0.res(vec2);
-
-		Vec3 f_norm = res1.cross(res2);	
-		
-		Vec3 vec4 (0,0,0);
-		Vec3 diff = vec4.res(vec0);
-
-		//backface culling
-		if (f_norm.dot(diff)<0) 
-			return;
+			//backface culling
+			if (f_norm.dot(diff)<0) 
+				return;
+		}
 
 		//PERSPECTIVE DIVIDE HERE
 		int max = 0;
@@ -238,7 +245,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 			float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
 			float z = v->z;
 			struct vector3D r1 = {x,y,1/z};	
-			
+			draw_point(x,y,1/z,2);	
 			poly_r[k]=r1;
 			if (y>max) {
 				max = y;
@@ -269,12 +276,12 @@ void render_triangle(struct vertex clip_coords[4]) {
 				if (edge_pixels[l][b].x==-1)
 					continue;
 
-				if (edge_pixels[l][b].x < smallest) {
+				if (edge_pixels[l][b].x <= smallest) {
 					smallest=edge_pixels[l][b].x;
 					is=b;
 				}
 
-				if (edge_pixels[l][b].x > largest) {
+				if (edge_pixels[l][b].x >= largest) {
 					largest=edge_pixels[l][b].x;
 					il=b;
 				}
@@ -300,11 +307,13 @@ void render_triangle(struct vertex clip_coords[4]) {
 			float delta_g = endg-startg;
 			float delta_b = endb-startb;
 	
-			//printf("first last - > (%d, %d)\n",first,last);	
+			//printf("first last - > (%d, %d)\n",first,last);
+			//printf("newline\n");	
 			for (int n=first; n<last+1; n++) {
-				float prop = (float) (n-minx)/(last-minx);			
+				float prop = (float) (n-first)/(last-first+1);			
 				float z = startz+ (prop*delta_z);
 				if (edge_pixels[l][n-minx].x != -1) {
+					//printf("depth %f %f\n",edge_pixels[l][n-minx].depth,z);
 					if (!draw_wireframe) {
 						unsigned char col[4] = {
 							edge_pixels[l][n-minx].c.r,
@@ -337,7 +346,7 @@ void render_mesh(Mesh *m) {
 	float sf = 2.0f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.0f;
+	float ty = -0.5f;
 	float tz = -6.5f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
