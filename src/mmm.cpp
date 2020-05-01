@@ -30,22 +30,16 @@ struct viewport {
 	float h;
 };
 
-bool draw_vertex = false;
-bool backface_culling = true;
-bool draw_wireframe = true;
-struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 const unsigned char fill = 70;
-unsigned char pc[4] = {40,40,40,255};					
-const unsigned char wf[3] = {20,20,20};					
-unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {100,100,100,255};
+const unsigned char wf[3] = {120,120,120};
+unsigned char clear_color[4] = {40,40,40,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
-const float far = 20;
-const float near = 1;
-const int fov = 90;
+const float far = 30;
+const float near = 2;
+const int fov = 110;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
 struct edge_pixel empty = {-1,NULL,0};
@@ -58,7 +52,7 @@ const float pm[4][4] = {
 
 };
 
-struct Color vertex_attributes[4] = {
+std::vector <struct Color> vertex_attributes = {
 		
 			//{255,0,0},
 			//{0,255,0},
@@ -77,7 +71,7 @@ std::vector<Mesh*> models;
 Display* display;
 
 void get_pairs(struct vector3D poly_r[4],
-	struct Color v_a[4], int min,int minx
+	std::vector<struct Color> &v_a, int min,int minx
 ) {
 
 	for (int k = 0; k<3; k++) {
@@ -92,10 +86,10 @@ void get_pairs(struct vector3D poly_r[4],
 		
 		int x0 = (int)poly_r[k].x;
 		int y0 = (int)poly_r[k].y;
-		float z0 = (float) poly_r[k].z;
+		float z0 = poly_r[k].z;
 		int x1 = (int)poly_r[k+1].x; 
 		int y1 = (int)poly_r[k+1].y;
-		float z1 = (float) poly_r[k+1].z;
+		float z1 = poly_r[k+1].z;
 
 
 		int dx = abs(x1-x0);
@@ -105,19 +99,19 @@ void get_pairs(struct vector3D poly_r[4],
 		int sy = (y0 < y1) ? 1 : -1;
 		
 		int err = dx - dy;
+		std::vector<struct vector2D> raster;
 		unsigned char c[4] = {wf[0],wf[1],wf[2],255};	
-		int index = 0;
 		while(true) {
 			struct vector2D point = {x0,y0};
-			curr_raster[index]=point;
+			raster.push_back(point);
+			
 			if ((x0==x1) && (y0==y1)) break;
 			int e2 = 2 * err;
 			if (e2 > -dy) { err -= dy; x0 += sx; }
 			if (e2 < dx) { err += dx; y0 += sy; }
-			index++;
 		}
 		
-		int no_points = index;
+		int no_points = raster.size();
 
 		float delta_r = r1-r;
 		float delta_g = g1-g;
@@ -125,9 +119,9 @@ void get_pairs(struct vector3D poly_r[4],
 		float delta_z = z1-z0;
 
 		for (int i = 0; i<no_points; i++) {
-			float prop = (float) i/(no_points-1);
-			int x = curr_raster[i].x;
-			int y = curr_raster[i].y;
+			float prop = (float) i/no_points;
+			int x = raster[i].x;
+			int y = raster[i].y;
 			
 			struct Color col = {
 				(unsigned char) (r + (prop*delta_r)),
@@ -135,7 +129,7 @@ void get_pairs(struct vector3D poly_r[4],
 				(unsigned char) (b + (prop*delta_b))
 			};
 			float depth = z0 + (prop*delta_z);
-			struct edge_pixel n = {x,col,1/depth};
+			struct edge_pixel n = {x,col,depth};
 			edge_pixels[y-min][x-minx]=n;
 		}
 	}
@@ -204,57 +198,41 @@ void clear_edge_pixels() {
 	}
 }
 
-void draw_point(int x, int y, float z, int weight) {
-
-	for (int i = x; i<weight+x; i++) {
-		for (int j = y; j<weight+y; j++) {
-			display->set_pixel(i-(weight/2),j-(weight/2),pc,z);
-		}
-	}	
-	
-}
-
 void render_triangle(struct vertex clip_coords[4]) {
 	
-		if (backface_culling) {
-			struct vertex* v0 = &clip_coords[0];
-			struct vertex* v1 = &clip_coords[1];
-			struct vertex* v2 = &clip_coords[2];
-			
-			Vec3 vec0 (v0->x,v0->y,v0->w);
-			Vec3 vec1 (v1->x,v1->y,v1->w);
-			Vec3 vec2 (v2->x,v2->y,v2->w);
-	
-			Vec3 res1 = vec0.res(vec1);
-			Vec3 res2 = vec0.res(vec2);
-	
-			Vec3 f_norm = res1.cross(res2);	
-			
-			Vec3 vec4 (0,0,0);
-			Vec3 diff = vec4.res(vec0);
+		struct vertex* v0 = &clip_coords[0];
+		struct vertex* v1 = &clip_coords[1];
+		struct vertex* v2 = &clip_coords[2];
+		
+		Vec3 vec0 (v0->x,v0->y,v0->w);
+		Vec3 vec1 (v1->x,v1->y,v1->w);
+		Vec3 vec2 (v2->x,v2->y,v2->w);
 
-			//backface culling
-			if (f_norm.dot(diff)<0) 
-				return;
-		}
+		Vec3 res1 = vec0.res(vec1);
+		Vec3 res2 = vec0.res(vec2);
 
+		Vec3 f_norm = res1.cross(res2);	
+		
+		Vec3 vec4 (0,0,0);
+		Vec3 diff = vec4.res(vec0);
+
+		//if (f_norm.dot(diff)<0) 
+		//	return;
+
+		struct vector3D poly_r[4];
 		//PERSPECTIVE DIVIDE HERE
 		int max = 0;
 		int maxx = 0;
 		int min = 100000000;
 		int minx = 100000000;
-		struct vector3D poly_r[4];
 		for (int k = 0; k<=3; k++) {
 
 			struct vertex *v = &clip_coords[k];
 			float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
 			float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-			float z = v->z;
-			struct vector3D r1 = {x,y,1/z};
-
-			if (draw_vertex)
-				draw_point(x,y,z,5);	
-
+			float z = v->z/v->w;
+			struct vector3D r1 = {x,y,1/z};	
+			
 			poly_r[k]=r1;
 			if (y>max) {
 				max = y;
@@ -272,7 +250,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 		}
 		//RASTER SPACE
 		const int range = max-min+1;	
-		const int rangex = maxx-minx+1;
+		const int rangex = maxx-minx+1;	
 		get_pairs(poly_r,vertex_attributes,min,minx);
 		for (int l = 0; l<range; l++) {
 			int yval = l+min;
@@ -285,16 +263,18 @@ void render_triangle(struct vertex clip_coords[4]) {
 				if (edge_pixels[l][b].x==-1)
 					continue;
 
-				if (edge_pixels[l][b].x <= smallest) {
+				if (edge_pixels[l][b].x < smallest) {
 					smallest=edge_pixels[l][b].x;
 					is=b;
 				}
 
-				if (edge_pixels[l][b].x >= largest) {
+				if (edge_pixels[l][b].x > largest) {
 					largest=edge_pixels[l][b].x;
 					il=b;
 				}
 			}
+	
+
 			int first = smallest;
 			int last = largest;
 			
@@ -316,47 +296,37 @@ void render_triangle(struct vertex clip_coords[4]) {
 			float delta_g = endg-startg;
 			float delta_b = endb-startb;
 	
-			//printf("first last - > (%d, %d)\n",first,last);
-			//printf("newline\n");	
 			for (int n=first; n<last+1; n++) {
-				float prop = (float) (n-first)/(last-first+1);			
+				float prop = (float) (n-minx)/(last-minx);			
 				float z = startz+ (prop*delta_z);
 				if (edge_pixels[l][n-minx].x != -1) {
-					//printf("depth %f %f\n",edge_pixels[l][n-minx].depth,z);
-					if (!draw_wireframe) {
-						unsigned char col[4] = {
-							edge_pixels[l][n-minx].c.r,
-							edge_pixels[l][n-minx].c.g,
-							edge_pixels[l][n-minx].c.b,
-							255
-						};
-						display->set_pixel(n,yval,col,z);
-					} else {
-						display->set_pixel(n,yval,wfc,z);
-					}
+					unsigned char color[4] = {
+						wf[0],wf[1],wf[2],255
+					};
+					display->set_pixel(n,yval,color,1/z);
 					edge_pixels[l][n-minx]=empty;	
 					continue;
 				}
-
 				unsigned char r = (unsigned char) (startr + (prop*delta_r));
 				unsigned char g = (unsigned char) (startg + (prop*delta_g));
 				unsigned char b = (unsigned char) (startb + (prop*delta_b));
 				unsigned char color[4] = {
 					r,g,b,255
 				};
-				display->set_pixel(n,yval,color,z);
+				display->set_pixel(n,yval,color,(1/z));
 			}
 		}
+	
 }
 
 void render_mesh(Mesh *m) {
 
 	unsigned char color[4] = {120,120,120,255};
-	float sf = 2.5f;
+	float sf = 12;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.25f;
-	float tz = -8.0f;
+	float ty = -1.0f;
+	float tz = -28.0f;
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -404,9 +374,9 @@ void initialize() {
 	//load_model("models/tank.obj",models);
 	//load_model("models/drill.obj",models);
 	//load_model("models/Plane.obj",models);
-	//load_model("models/tugboat.obj",models);
+	load_model("models/tugboat.obj",models);
 	//load_model("models/Suzuki_Carry.obj",models);
-	load_model("models/snowcat.obj",models);
+	//load_model("models/snowcat.obj",models);
 	//load_model("models/car.obj",models);
 	//load_model("models/tractor.obj",models);
 	//load_model("models/treecartoon.obj",models);
@@ -414,14 +384,6 @@ void initialize() {
 	//load_model("models/rallycar.obj",models);
 	//load_model("models/voxel.obj",models);
 	//load_model("models/lowpolytree.obj",models);
-	//load_model("models/untitled.obj",models);
-	//load_model("models/Boat.obj",models);
-	//load_model("models/armytruck.obj",models);
-	//load_model("models/Boat0.obj",models);
-	//load_model("models/ship.obj",models);
-	//load_model("models/Lowpoly_Helicopter.obj",models);
-	//load_model("models/Pokemon.obj",models);
-
 
 	selected = 0;
 	models[selected]->normalize();
