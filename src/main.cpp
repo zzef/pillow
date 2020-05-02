@@ -32,14 +32,13 @@ struct viewport {
 
 bool draw_vertex = false;
 bool backface_culling = true;
-bool draw_wireframe = true;
+bool draw_wireframe = false;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
-const unsigned char fill = 70;
 unsigned char pc[4] = {40,40,40,255};					
 const unsigned char wf[3] = {20,20,20};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {100,100,100,255};
+unsigned char clear_color[4] = {50,50,50,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -58,20 +57,10 @@ const float pm[4][4] = {
 
 };
 
-struct Color vertex_attributes[4] = {
-		
-			//{255,0,0},
-			//{0,255,0},
-			//{0,0,255},
-			//{255,0,0}
-		
-			{fill,fill,fill},
-			{fill,fill,fill},
-			{fill,fill,fill},
-			{fill,fill,fill},
 
-		};
-
+//lighting
+float ambient_light[4] = {209,48,160,0.1f};
+float point_light[8] = {255,20,40,0,10,0,0.6f,0.4f}; 
 
 std::vector<Mesh*> models;
 Display* display;
@@ -215,6 +204,15 @@ void draw_point(int x, int y, float z, int weight) {
 }
 
 void render_triangle(struct vertex clip_coords[4]) {
+
+	
+		float fill_r = 70;
+		float fill_g = 70;
+		float fill_b = 70;
+		float shininess = 1.5f;
+		fill_r+=(ambient_light[0]*ambient_light[3]);
+		fill_g+=(ambient_light[1]*ambient_light[3]);
+		fill_b+=(ambient_light[2]*ambient_light[3]);
 	
 		if (backface_culling) {
 			struct vertex* v0 = &clip_coords[0];
@@ -232,6 +230,41 @@ void render_triangle(struct vertex clip_coords[4]) {
 			
 			Vec3 vec4 (0,0,0);
 			Vec3 diff = vec4.res(vec0);
+		
+			Vec3 mid1 = vec0.mid(vec1);
+			Vec3 mid2 = mid1.mid(vec2);
+
+			//diffuse light
+			Vec3 light (point_light[3],point_light[4],-point_light[5]);
+			Vec3 to_light = light.res(mid2);
+			Vec3 l = to_light.normalize();			
+			Vec3 norm = f_norm.normalize();
+			
+			float h = l.dot(norm);
+			float h2 = h*2;
+			float add = std::max(h*point_light[6],0.0f);
+			fill_r+=(add*point_light[0]);
+			fill_g+=(add*point_light[1]);
+			fill_b+=(add*point_light[2]);
+	
+			//specular light
+			Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
+			Vec3 reflected = l.res(ref1);
+			Vec3 to_cam = vec4.res(mid2);
+			
+			float rfdot = (float) reflected.dot(to_cam);
+			if (rfdot>0) {
+			
+				float h0 = pow(rfdot,shininess);
+				float add2 = std::max(h0*point_light[7],0.0f);
+		
+				fill_r+=(add2*point_light[0]);
+				fill_g+=(add2*point_light[1]);
+				fill_b+=(add2*point_light[2]);	
+			}
+			fill_r=std::min(fill_r,255.0f);
+			fill_g=std::min(fill_g,255.0f);
+			fill_b=std::min(fill_b,255.0f);
 
 			//backface culling
 			if (f_norm.dot(diff)<0) 
@@ -273,6 +306,24 @@ void render_triangle(struct vertex clip_coords[4]) {
 		//RASTER SPACE
 		const int range = max-min+1;	
 		const int rangex = maxx-minx+1;
+	
+
+		struct Color vertex_attributes[4] = {
+		
+			//{255,0,0},
+			//{0,255,0},
+			//{0,0,255},
+			//{255,0,0}
+		
+			{fill_r,fill_g,fill_b},
+			{fill_r,fill_g,fill_b},
+			{fill_r,fill_g,fill_b},
+			{fill_r,fill_g,fill_b}
+
+		};
+
+
+
 		get_pairs(poly_r,vertex_attributes,min,minx);
 		for (int l = 0; l<range; l++) {
 			int yval = l+min;
@@ -355,8 +406,8 @@ void render_mesh(Mesh *m) {
 	float sf = 2.5f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.25f;
-	float tz = -8.0f;
+	float ty = -1.0f;
+	float tz = -6.0f;	
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -395,7 +446,7 @@ void initialize() {
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	//load_model("models/Jeep_Renegade_2016.obj",models);
+	load_model("models/Jeep_Renegade_2016.obj",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
@@ -406,7 +457,7 @@ void initialize() {
 	//load_model("models/Plane.obj",models);
 	//load_model("models/tugboat.obj",models);
 	//load_model("models/Suzuki_Carry.obj",models);
-	load_model("models/snowcat.obj",models);
+	//load_model("models/snowcat.obj",models);
 	//load_model("models/car.obj",models);
 	//load_model("models/tractor.obj",models);
 	//load_model("models/treecartoon.obj",models);

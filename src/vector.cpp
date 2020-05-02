@@ -16,6 +16,34 @@ Vec3 Vec3::cross(Vec3 v) {
 	return n;	
 }
 
+Vec3 Vec3::mid(Vec3 v) {
+	
+	Vec3 n (
+		
+		(this->x+v.x)/2,
+		(this->y+v.y)/2,
+		(this->z+v.z)/2
+	
+	);
+
+	return n;
+
+}
+
+Vec3 Vec3::normalize() {
+
+	float norm = (float) (this->x*this->x)+(this->y*this->y)+(this->z*this->z);
+	float invsqrt = (float) 1/sqrtf(norm);
+
+	Vec3 n (
+		this->x*invsqrt,			
+		this->y*invsqrt,			
+		this->z*invsqrt			
+	);
+	return n;
+	
+}
+
 Vec3 Vec3::res(Vec3 v) {
 			
 	Vec3 n (
