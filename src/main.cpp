@@ -60,7 +60,7 @@ const float pm[4][4] = {
 
 //lighting
 float ambient_light[4] = {209,48,160,0.1f};
-float point_light[8] = {255,20,40,0,10,0,0.6f,0.4f}; 
+float point_light[8] = {255,20,40,0,10,0,0.6f,0.2f}; 
 
 std::vector<Mesh*> models;
 Display* display;
@@ -209,7 +209,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 		float fill_r = 70;
 		float fill_g = 70;
 		float fill_b = 70;
-		float shininess = 1.5f;
+		float shininess = 2.0f;
 		fill_r+=(ambient_light[0]*ambient_light[3]);
 		fill_g+=(ambient_light[1]*ambient_light[3]);
 		fill_b+=(ambient_light[2]*ambient_light[3]);
