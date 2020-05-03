@@ -10,5 +10,5 @@ Pillow is a software rendering engine built in C++. So far the engine features:
 - Flat shading using the phong reflection model
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample2.gif?token=AFRVA2LG7OQGNYXCVKP4VXS6VWZU4">
+  <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample2.gif">
 </p>
