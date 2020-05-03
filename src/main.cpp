@@ -441,7 +441,7 @@ void initialize() {
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	//load_model("models/Jeep_Renegade_2016.obj",models);
+	//load_model("models/Jeep/Jeep_Renegade_2016.obj","models/Jeep/Jeep_Renegade_2016.mtl",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
