@@ -38,7 +38,7 @@ struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {40,40,40,255};					
 const unsigned char wf[3] = {20,20,20};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {255,255,255,255};
+unsigned char clear_color[4] = {30,30,30,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -60,7 +60,7 @@ const float pm[4][4] = {
 
 //lighting
 float ambient_light[3] = {(float)(125.0f/255.0f),(float)(85.0f/255.0f),(float)(90.0f/255.0f)};
-float point_light[6] = {(float)(210.0f/255.0f),(float)(220.0f/255.0f),(float)(240.0f/255.0f),0,4,-2}; 
+float point_light[6] = {(float)(240.0f/255.0f),(float)(230.0f/255.0f),(float)(250.0f/255.0f),0,6,-2}; 
 
 std::vector<Mesh*> models;
 Display* display;
@@ -401,7 +401,7 @@ void render_mesh(Mesh *m) {
 	float sf = 2.5f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.8f;
+	float ty = -1.5f;
 	float tz = -6.0f;	
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
@@ -435,13 +435,13 @@ void initialize() {
 	//load_model("models/WindMill.obj",models);
 	//load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
-	load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
+	//load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
 	//load_model("models/suzanne.obj",models);
 	//load_model("models/monkey.obj",models);
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	//load_model("models/Jeep/Jeep_Renegade_2016.obj","models/Jeep/Jeep_Renegade_2016.mtl",models);
+	load_model("models/Jeep/Jeep_Renegade_2016.obj","models/Jeep/Jeep_Renegade_2016.mtl",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
