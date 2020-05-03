@@ -21,6 +21,7 @@ void Mesh::update_max() {
 void Mesh::triangulate() {
 	//assumes that all triangles are concave.	
 	for (int i = 0; i<this->polygons(); i++) {
+		struct mtl* mat = mat_list[i];
 		if (f_list[i].size()>4) {
 			for (int j = 1; j<f_list[i].size()-2; j++) {
 				std::vector<long> v;
@@ -32,10 +33,12 @@ void Mesh::triangulate() {
 				v.push_back(v2);
 				v.push_back(v0);
 				this->tf_list.push_back(v);
+				tmat_list.push_back(mat);
 			}
 		}
 		else {
 			tf_list.push_back(f_list[i]);
+			tmat_list.push_back(mat);
 		}
 	}
 }
@@ -68,8 +71,9 @@ long Mesh::vertices() {
 	return v_list.size();
 }
 
-void Mesh::add_face(std::vector<long> face) {
+void Mesh::add_face(std::vector<long> face, struct mtl* m) {
 	this->f_list.push_back(face);
+	this->mat_list.push_back(m);
 }
 
 long Mesh::polygons() {

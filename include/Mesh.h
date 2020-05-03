@@ -8,6 +8,15 @@ struct vertex {
 	float w;
 };
 
+struct mtl {
+
+	float ka[3];
+	float kd[3];
+	float ks[3];
+	int illum;
+	float Ns;
+
+};
 
 class Mesh {
 
@@ -17,6 +26,8 @@ class Mesh {
 		std::vector<std::vector<long>> f_list;
 		std::vector<std::vector<long>> tf_list;
 		std::vector<struct vector3D> n_list;
+		std::vector<struct mtl*> mat_list;
+		std::vector<struct mtl*> tmat_list;
 		std::string name;
 		float max = 1;		
 
@@ -28,7 +39,7 @@ class Mesh {
 		long normals();
 		void add_vertex(float x, float y, float z);
 		long vertices();
-		void add_face(std::vector<long> face);
+		void add_face(std::vector<long> face, struct mtl* m);
 		long polygons();
 		long triangles();
 		void print_mesh();

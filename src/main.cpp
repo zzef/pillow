@@ -38,7 +38,7 @@ struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {40,40,40,255};					
 const unsigned char wf[3] = {20,20,20};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {200,200,200,255};
+unsigned char clear_color[4] = {255,255,255,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -59,8 +59,8 @@ const float pm[4][4] = {
 
 
 //lighting
-float ambient_light[3] = {(float)(159.0f/255.0f),(float)(250.0f/255.0f),(float)(252.0f/255.0f)};
-float point_light[6] = {(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,10,-2}; 
+float ambient_light[3] = {(float)(125.0f/255.0f),(float)(85.0f/255.0f),(float)(90.0f/255.0f)};
+float point_light[6] = {(float)(210.0f/255.0f),(float)(220.0f/255.0f),(float)(240.0f/255.0f),0,4,-2}; 
 
 std::vector<Mesh*> models;
 Display* display;
@@ -203,21 +203,16 @@ void draw_point(int x, int y, float z, int weight) {
 	
 }
 
-void render_triangle(struct vertex clip_coords[4]) {
-
-	
+void render_triangle(struct vertex clip_coords[4], struct mtl* m) {
+		
 		float r = 0;
 		float g = 0;
 		float b = 0;
-		float shininess = 2.5f;
+		float shininess = m->Ns;		
 
-		float m_ka[3] = {0.2,0.2,0.2};
-		float m_ks[3] = {0.5,0.05,0.05};
-		float m_kd[3] = {0.9,0.1,0.1};
-
-		r+=(ambient_light[0]*m_ka[0]);
-		g+=(ambient_light[1]*m_ka[1]);
-		b+=(ambient_light[2]*m_ka[2]);
+		r+=(ambient_light[0]*m->ka[0]);
+		g+=(ambient_light[1]*m->ka[1]);
+		b+=(ambient_light[2]*m->ka[2]);
 			
 			struct vertex* v0 = &clip_coords[0];
 			struct vertex* v1 = &clip_coords[1];
@@ -246,22 +241,22 @@ void render_triangle(struct vertex clip_coords[4]) {
 			
 			float h = std::max(l.dot(norm),0.0f);
 			float h2 = h*2;
-			r+=(h*m_kd[0]*point_light[0]);
-			g+=(h*m_kd[1]*point_light[1]);
-			b+=(h*m_kd[2]*point_light[2]);
+			r+=(h*m->kd[0]*point_light[0]);
+			g+=(h*m->kd[1]*point_light[1]);
+			b+=(h*m->kd[2]*point_light[2]);
 	
 			//specular light
 			Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
 			Vec3 reflected = l.res(ref1);
-			Vec3 to_cam = vec4.res(mid2);
+			Vec3 to_cam = vec4.res(mid2).normalize();
 			
 			float rfdot = (float) reflected.dot(to_cam);
 			if (rfdot>0) {
 			
 				float h0 = pow(rfdot,shininess);	
-				r+=(h0*m_ks[0]*point_light[0]);
-				g+=(h0*m_ks[1]*point_light[1]);
-				b+=(h0*m_ks[2]*point_light[2]);	
+				r+=(h0*m->ks[0]*point_light[0]);
+				g+=(h0*m->ks[1]*point_light[1]);
+				b+=(h0*m->ks[2]*point_light[2]);	
 			}
 
 
@@ -314,12 +309,7 @@ void render_triangle(struct vertex clip_coords[4]) {
 	
 
 		struct Color vertex_attributes[4] = {
-		
-			//{255,0,0},
-			//{0,255,0},
-			//{0,0,255},
-			//{255,0,0}
-		
+			
 			{fill_r,fill_g,fill_b},
 			{fill_r,fill_g,fill_b},
 			{fill_r,fill_g,fill_b},
@@ -411,7 +401,7 @@ void render_mesh(Mesh *m) {
 	float sf = 2.5f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -1.5f;
+	float ty = -0.8f;
 	float tz = -6.0f;	
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
@@ -431,7 +421,7 @@ void render_mesh(Mesh *m) {
 			struct vertex vert = {x,y,z,w};
 			clip_coords[j] = vert;
 		}
-		render_triangle(clip_coords);
+		render_triangle(clip_coords,m->tmat_list[i]);
 	}
 	
 	m->translate(-tx,-ty,-tz);
@@ -445,13 +435,13 @@ void initialize() {
 	//load_model("models/WindMill.obj",models);
 	//load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
-	//load_model("models/low-poly-mill.obj",models);
+	load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
 	//load_model("models/suzanne.obj",models);
 	//load_model("models/monkey.obj",models);
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	load_model("models/Jeep_Renegade_2016.obj",models);
+	//load_model("models/Jeep_Renegade_2016.obj",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
@@ -459,7 +449,7 @@ void initialize() {
 	//load_model("models/crow.obj",models);
 	//load_model("models/tank.obj",models);
 	//load_model("models/drill.obj",models);
-	//load_model("models/Plane.obj",models);
+	//load_model("models/Plane/Plane.obj","models/Plane/Plane.mtl",models);
 	//load_model("models/tugboat.obj",models);
 	//load_model("models/Suzuki_Carry.obj",models);
 	//load_model("models/snowcat.obj",models);
@@ -482,7 +472,7 @@ void initialize() {
 	selected = 0;
 	models[selected]->normalize();
 	models[selected]->triangulate();
-	models[selected]->print_mesh();
+	//models[selected]->print_mesh();
 	printf("model: %s, triangles: %li, vertices: %li\n",
 		models[selected]->name.c_str(),
 		models[selected]->triangles(),
