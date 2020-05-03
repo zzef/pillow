@@ -38,7 +38,7 @@ struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {40,40,40,255};					
 const unsigned char wf[3] = {20,20,20};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {50,50,50,255};
+unsigned char clear_color[4] = {200,200,200,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -59,8 +59,8 @@ const float pm[4][4] = {
 
 
 //lighting
-float ambient_light[4] = {209,48,160,0.1f};
-float point_light[8] = {255,20,40,0,10,0,0.6f,0.2f}; 
+float ambient_light[3] = {(float)(159.0f/255.0f),(float)(250.0f/255.0f),(float)(252.0f/255.0f)};
+float point_light[6] = {(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,10,-2}; 
 
 std::vector<Mesh*> models;
 Display* display;
@@ -206,15 +206,19 @@ void draw_point(int x, int y, float z, int weight) {
 void render_triangle(struct vertex clip_coords[4]) {
 
 	
-		float fill_r = 70;
-		float fill_g = 70;
-		float fill_b = 70;
-		float shininess = 2.0f;
-		fill_r+=(ambient_light[0]*ambient_light[3]);
-		fill_g+=(ambient_light[1]*ambient_light[3]);
-		fill_b+=(ambient_light[2]*ambient_light[3]);
-	
-		if (backface_culling) {
+		float r = 0;
+		float g = 0;
+		float b = 0;
+		float shininess = 2.5f;
+
+		float m_ka[3] = {0.2,0.2,0.2};
+		float m_ks[3] = {0.5,0.05,0.05};
+		float m_kd[3] = {0.9,0.1,0.1};
+
+		r+=(ambient_light[0]*m_ka[0]);
+		g+=(ambient_light[1]*m_ka[1]);
+		b+=(ambient_light[2]*m_ka[2]);
+			
 			struct vertex* v0 = &clip_coords[0];
 			struct vertex* v1 = &clip_coords[1];
 			struct vertex* v2 = &clip_coords[2];
@@ -240,12 +244,11 @@ void render_triangle(struct vertex clip_coords[4]) {
 			Vec3 l = to_light.normalize();			
 			Vec3 norm = f_norm.normalize();
 			
-			float h = l.dot(norm);
+			float h = std::max(l.dot(norm),0.0f);
 			float h2 = h*2;
-			float add = std::max(h*point_light[6],0.0f);
-			fill_r+=(add*point_light[0]);
-			fill_g+=(add*point_light[1]);
-			fill_b+=(add*point_light[2]);
+			r+=(h*m_kd[0]*point_light[0]);
+			g+=(h*m_kd[1]*point_light[1]);
+			b+=(h*m_kd[2]*point_light[2]);
 	
 			//specular light
 			Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
@@ -255,21 +258,23 @@ void render_triangle(struct vertex clip_coords[4]) {
 			float rfdot = (float) reflected.dot(to_cam);
 			if (rfdot>0) {
 			
-				float h0 = pow(rfdot,shininess);
-				float add2 = std::max(h0*point_light[7],0.0f);
-		
-				fill_r+=(add2*point_light[0]);
-				fill_g+=(add2*point_light[1]);
-				fill_b+=(add2*point_light[2]);	
+				float h0 = pow(rfdot,shininess);	
+				r+=(h0*m_ks[0]*point_light[0]);
+				g+=(h0*m_ks[1]*point_light[1]);
+				b+=(h0*m_ks[2]*point_light[2]);	
 			}
-			fill_r=std::min(fill_r,255.0f);
-			fill_g=std::min(fill_g,255.0f);
-			fill_b=std::min(fill_b,255.0f);
+
+
+			float fill_r=std::min(r*255.0f,255.0f);
+			float fill_g=std::min(g*255.0f,255.0f);
+			float fill_b=std::min(b*255.0f,255.0f);
 
 			//backface culling
+		if (backface_culling) {
 			if (f_norm.dot(diff)<0) 
 				return;
 		}
+		
 
 		//PERSPECTIVE DIVIDE HERE
 		int max = 0;
@@ -406,7 +411,7 @@ void render_mesh(Mesh *m) {
 	float sf = 2.5f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -1.0f;
+	float ty = -1.5f;
 	float tz = -6.0f;	
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
