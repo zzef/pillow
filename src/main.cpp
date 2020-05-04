@@ -32,7 +32,7 @@ struct viewport {
 
 bool draw_vertex = false;
 bool backface_culling = true;
-bool draw_wireframe = false;
+bool draw_wireframe = true;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {40,40,40,255};					
@@ -407,12 +407,14 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m) {
 void render_mesh(Mesh *m) {
 
 	unsigned char color[4] = {120,120,120,255};
-	float sf = 2.5f;
+	float sf = 3.0f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.75f;
-	float tz = -6.0f;	
+	float ty = -0.6f;
+	float tz = -6.0f;
+	float tilt = 10.0f;	
 	m->rotate_y(1.5f);
+	m->rotate_x(-tilt);
 	m->translate(tx,ty,tz);
 
 	for (int i = 0; i<m->triangles(); i++) {
@@ -434,6 +436,7 @@ void render_mesh(Mesh *m) {
 	}
 	
 	m->translate(-tx,-ty,-tz);
+	m->rotate_x(tilt);
 	m->scale(1/sf,1/sf,1/sf);
 }
 
