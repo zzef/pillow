@@ -36,9 +36,9 @@ bool draw_wireframe = false;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {40,40,40,255};					
-const unsigned char wf[3] = {20,20,20};					
+const unsigned char wf[3] = {40,40,40};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {30,30,30,255};
+unsigned char clear_color[4] = {98,200,214,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -59,8 +59,16 @@ const float pm[4][4] = {
 
 
 //lighting
-float ambient_light[3] = {(float)(125.0f/255.0f),(float)(85.0f/255.0f),(float)(90.0f/255.0f)};
-float point_light[6] = {(float)(240.0f/255.0f),(float)(230.0f/255.0f),(float)(250.0f/255.0f),0,6,-2}; 
+const int lights = 3;
+float ambient_light[3] = {(float)(255.0f/255.0f),(float)(180.0f/255.0f),(float)(230.0f/255.0f)};
+float point_light[lights][6] = {
+
+	//{(float)(240.0f/255.0f),(float)(240.0f/255.0f),(float)(240.0f/255.0f),0,10,10}, 
+	{(float)(40.0f/255.0f),(float)(40.0f/255.0f),(float)(10.0f/255.0f),0,0,0},
+	{(float)(240.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),15,10,0},
+	{(float)(240.0f/255.0f),(float)(240.0f/255.0f),(float)(250.0f/255.0f),-15,10,0},
+
+}; 
 
 std::vector<Mesh*> models;
 Display* display;
@@ -205,194 +213,195 @@ void draw_point(int x, int y, float z, int weight) {
 
 void render_triangle(struct vertex clip_coords[4], struct mtl* m) {
 		
-		float r = 0;
-		float g = 0;
-		float b = 0;
-		float shininess = m->Ns;		
+	float r = 0;
+	float g = 0;
+	float b = 0;
+	float shininess = m->Ns;		
 
-		r+=(ambient_light[0]*m->ka[0]);
-		g+=(ambient_light[1]*m->ka[1]);
-		b+=(ambient_light[2]*m->ka[2]);
-			
-			struct vertex* v0 = &clip_coords[0];
-			struct vertex* v1 = &clip_coords[1];
-			struct vertex* v2 = &clip_coords[2];
-			
-			Vec3 vec0 (v0->x,v0->y,v0->w);
-			Vec3 vec1 (v1->x,v1->y,v1->w);
-			Vec3 vec2 (v2->x,v2->y,v2->w);
+	r+=(ambient_light[0]*m->ka[0]);
+	g+=(ambient_light[1]*m->ka[1]);
+	b+=(ambient_light[2]*m->ka[2]);
 	
-			Vec3 res1 = vec0.res(vec1);
-			Vec3 res2 = vec0.res(vec2);
-	
-			Vec3 f_norm = res1.cross(res2);	
-			
-			Vec3 vec4 (0,0,0);
-			Vec3 diff = vec4.res(vec0);
-		
-			Vec3 mid1 = vec0.mid(vec1);
-			Vec3 mid2 = mid1.mid(vec2);
-
-			//diffuse light
-			Vec3 light (point_light[3],point_light[4],-point_light[5]);
-			Vec3 to_light = light.res(mid2);
-			Vec3 l = to_light.normalize();			
-			Vec3 norm = f_norm.normalize();
-			
-			float h = std::max(l.dot(norm),0.0f);
-			float h2 = h*2;
-			r+=(h*m->kd[0]*point_light[0]);
-			g+=(h*m->kd[1]*point_light[1]);
-			b+=(h*m->kd[2]*point_light[2]);
-	
-			//specular light
-			Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
-			Vec3 reflected = l.res(ref1);
-			Vec3 to_cam = vec4.res(mid2).normalize();
-			
-			float rfdot = (float) reflected.dot(to_cam);
-			if (rfdot>0) {
-			
-				float h0 = pow(rfdot,shininess);	
-				r+=(h0*m->ks[0]*point_light[0]);
-				g+=(h0*m->ks[1]*point_light[1]);
-				b+=(h0*m->ks[2]*point_light[2]);	
-			}
-
-
-			float fill_r=std::min(r*255.0f,255.0f);
-			float fill_g=std::min(g*255.0f,255.0f);
-			float fill_b=std::min(b*255.0f,255.0f);
-
-			//backface culling
-		if (backface_culling) {
-			if (f_norm.dot(diff)<0) 
-				return;
-		}
-		
-
-		//PERSPECTIVE DIVIDE HERE
-		int max = 0;
-		int maxx = 0;
-		int min = 100000000;
-		int minx = 100000000;
-		struct vector3D poly_r[4];
-		for (int k = 0; k<=3; k++) {
-
-			struct vertex *v = &clip_coords[k];
-			float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
-			float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-			float z = v->z;
-			struct vector3D r1 = {x,y,1/z};
-
-			if (draw_vertex)
-				draw_point(x,y,z,5);	
-
-			poly_r[k]=r1;
-			if (y>max) {
-				max = y;
-			}
-			if (y<min) {
-				min = y;
-			}
-			if (x>maxx) {
-				maxx = x;
-			}
-			if (x<minx) {
-				minx = x;
-			}
-
-		}
-		//RASTER SPACE
-		const int range = max-min+1;	
-		const int rangex = maxx-minx+1;
-	
-
-		struct Color vertex_attributes[4] = {
-			
-			{fill_r,fill_g,fill_b},
-			{fill_r,fill_g,fill_b},
-			{fill_r,fill_g,fill_b},
-			{fill_r,fill_g,fill_b}
-
-		};
-
-
-
-		get_pairs(poly_r,vertex_attributes,min,minx);
-		for (int l = 0; l<range; l++) {
-			int yval = l+min;
-			int smallest = 100000000;
-			int largest = -100000000;
-			int is = 0;
-			int il = 0;
-			for (int b = 0; b<rangex; b++) {
-
-				if (edge_pixels[l][b].x==-1)
-					continue;
-
-				if (edge_pixels[l][b].x <= smallest) {
-					smallest=edge_pixels[l][b].x;
-					is=b;
-				}
-
-				if (edge_pixels[l][b].x >= largest) {
-					largest=edge_pixels[l][b].x;
-					il=b;
-				}
-			}
-			int first = smallest;
-			int last = largest;
-			
-			//printf("first last - > (%d, %d)\n",first,last);	
-			
-			float startz = edge_pixels[l][is].depth;			
-			float endz = edge_pixels[l][il].depth;			
+	struct vertex* v0 = &clip_coords[0];
+	struct vertex* v1 = &clip_coords[1];
+	struct vertex* v2 = &clip_coords[2];
 				
-			float startr = (float) edge_pixels[l][is].c.r;			
-			float startg = (float) edge_pixels[l][is].c.g;			
-			float startb = (float) edge_pixels[l][is].c.b;			
-			
-			float endr = (float) edge_pixels[l][il].c.r;
-			float endg = (float) edge_pixels[l][il].c.g;
-			float endb = (float) edge_pixels[l][il].c.b;
-		
-			float delta_z = endz-startz;
-			float delta_r = endr-startr;
-			float delta_g = endg-startg;
-			float delta_b = endb-startb;
+	Vec3 vec0 (v0->x,v0->y,v0->w);
+	Vec3 vec1 (v1->x,v1->y,v1->w);
+	Vec3 vec2 (v2->x,v2->y,v2->w);
 	
-			//printf("first last - > (%d, %d)\n",first,last);
-			//printf("newline\n");	
-			for (int n=first; n<last+1; n++) {
-				float prop = (float) (n-first)/(last-first+1);			
-				float z = startz+ (prop*delta_z);
-				if (edge_pixels[l][n-minx].x != -1) {
-					//printf("depth %f %f\n",edge_pixels[l][n-minx].depth,z);
-					if (!draw_wireframe) {
-						unsigned char col[4] = {
-							edge_pixels[l][n-minx].c.r,
-							edge_pixels[l][n-minx].c.g,
-							edge_pixels[l][n-minx].c.b,
-							255
-						};
-						display->set_pixel(n,yval,col,z);
-					} else {
-						display->set_pixel(n,yval,wfc,z);
-					}
-					edge_pixels[l][n-minx]=empty;	
-					continue;
-				}
+	Vec3 res1 = vec0.res(vec1);
+	Vec3 res2 = vec0.res(vec2);
+	
+	Vec3 f_norm = res1.cross(res2);	
+			
+	Vec3 vec4 (0,0,0);
+	Vec3 diff = vec4.res(vec0);
+		
+	Vec3 mid1 = vec0.mid(vec1);
+	Vec3 mid2 = mid1.mid(vec2);
 
-				unsigned char r = (unsigned char) (startr + (prop*delta_r));
-				unsigned char g = (unsigned char) (startg + (prop*delta_g));
-				unsigned char b = (unsigned char) (startb + (prop*delta_b));
-				unsigned char color[4] = {
-					r,g,b,255
-				};
-				display->set_pixel(n,yval,color,z);
+	for (int i = 0; i<lights; i++) {
+		
+		//diffuse light
+		Vec3 light (point_light[i][3],point_light[i][4],-point_light[i][5]);
+		Vec3 to_light = light.res(mid2);
+		Vec3 l = to_light.normalize();			
+		Vec3 norm = f_norm.normalize();
+				
+		float h = std::max(l.dot(norm),0.0f);
+		float h2 = h*2;
+		r+=(h*m->kd[0]*point_light[i][0]);
+		g+=(h*m->kd[1]*point_light[i][1]);
+		b+=(h*m->kd[2]*point_light[i][2]);
+		
+		//specular light
+		Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
+		Vec3 reflected = l.res(ref1);
+		Vec3 to_cam = vec4.res(mid2).normalize();
+				
+		float rfdot = (float) reflected.dot(to_cam);
+		if (rfdot>0) {
+				
+			float h0 = pow(rfdot,shininess);	
+			r+=(h0*m->ks[0]*point_light[i][0]);
+			g+=(h0*m->ks[1]*point_light[i][1]);
+			b+=(h0*m->ks[2]*point_light[i][2]);	
+		}
+
+	}
+	
+	float fill_r=std::min(r*255.0f,255.0f);
+	float fill_g=std::min(g*255.0f,255.0f);
+	float fill_b=std::min(b*255.0f,255.0f);
+	
+			//backface culling
+	if (backface_culling) {
+		if (f_norm.dot(diff)<0) 
+			return;
+	}
+		
+
+	//PERSPECTIVE DIVIDE HERE
+	int max = 0;
+	int maxx = 0;
+	int min = 100000000;
+	int minx = 100000000;
+	struct vector3D poly_r[4];
+	for (int k = 0; k<=3; k++) {
+
+		struct vertex *v = &clip_coords[k];
+		float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
+		float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
+		float z = v->z;
+		struct vector3D r1 = {x,y,1/z};
+
+		if (draw_vertex)
+			draw_point(x,y,z,5);	
+
+		poly_r[k]=r1;
+		if (y>max) {
+			max = y;
+		}
+		if (y<min) {
+			min = y;
+		}
+		if (x>maxx) {
+			maxx = x;
+		}
+		if (x<minx) {
+			minx = x;
+		}
+
+	}
+		//RASTER SPACE
+	const int range = max-min+1;	
+	const int rangex = maxx-minx+1;
+	
+	struct Color vertex_attributes[4] = {
+			
+		{fill_r,fill_g,fill_b},
+		{fill_r,fill_g,fill_b},
+		{fill_r,fill_g,fill_b},
+		{fill_r,fill_g,fill_b}
+
+	};
+
+
+
+	get_pairs(poly_r,vertex_attributes,min,minx);
+	for (int l = 0; l<range; l++) {
+		int yval = l+min;
+		int smallest = 100000000;
+		int largest = -100000000;
+		int is = 0;
+		int il = 0;
+		for (int b = 0; b<rangex; b++) {
+
+			if (edge_pixels[l][b].x==-1)
+				continue;
+			if (edge_pixels[l][b].x <= smallest) {
+				smallest=edge_pixels[l][b].x;
+				is=b;
+			}
+
+			if (edge_pixels[l][b].x >= largest) {
+				largest=edge_pixels[l][b].x;
+				il=b;
 			}
 		}
+		int first = smallest;
+		int last = largest;
+		
+		//printf("first last - > (%d, %d)\n",first,last);	
+		
+		float startz = edge_pixels[l][is].depth;			
+		float endz = edge_pixels[l][il].depth;			
+			
+		float startr = (float) edge_pixels[l][is].c.r;			
+		float startg = (float) edge_pixels[l][is].c.g;			
+		float startb = (float) edge_pixels[l][is].c.b;			
+		
+		float endr = (float) edge_pixels[l][il].c.r;
+		float endg = (float) edge_pixels[l][il].c.g;
+		float endb = (float) edge_pixels[l][il].c.b;
+	
+		float delta_z = endz-startz;
+		float delta_r = endr-startr;
+		float delta_g = endg-startg;
+		float delta_b = endb-startb;
+	
+		//printf("first last - > (%d, %d)\n",first,last);
+		//printf("newline\n");	
+		for (int n=first; n<last+1; n++) {
+			float prop = (float) (n-first)/(last-first+1);			
+			float z = startz+ (prop*delta_z);
+			if (edge_pixels[l][n-minx].x != -1) {
+				//printf("depth %f %f\n",edge_pixels[l][n-minx].depth,z);
+				if (!draw_wireframe) {
+					unsigned char col[4] = {
+						edge_pixels[l][n-minx].c.r,
+						edge_pixels[l][n-minx].c.g,
+						edge_pixels[l][n-minx].c.b,
+						255
+					};
+					display->set_pixel(n,yval,col,z);
+				} else {
+					display->set_pixel(n,yval,wfc,z);
+				}
+				edge_pixels[l][n-minx]=empty;	
+				continue;
+			}
+
+			unsigned char r = (unsigned char) (startr + (prop*delta_r));
+			unsigned char g = (unsigned char) (startg + (prop*delta_g));
+			unsigned char b = (unsigned char) (startb + (prop*delta_b));
+			unsigned char color[4] = {
+				r,g,b,255
+			};
+			display->set_pixel(n,yval,color,z);
+		}
+	}
 }
 
 void render_mesh(Mesh *m) {
@@ -401,8 +410,8 @@ void render_mesh(Mesh *m) {
 	float sf = 2.5f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -1.5f;
-	float tz = -6.0f;	
+	float ty = -0.75f;
+	float tz = -9.0f;	
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
@@ -435,13 +444,16 @@ void initialize() {
 	//load_model("models/WindMill.obj",models);
 	//load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
+	//load_model("models/orange/orangeOBJ.obj","models/orange/orangeOBJ.mtl",models);
 	//load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
+	//load_model("models/Car/low_poly_911.obj","models/Car/low_poly_911.mtl",models);
+	//load_model("models/GT/SPECTER_GT3_.obj","models/GT/SPECTER_GT3_.mtl",models);
 	//load_model("models/suzanne.obj",models);
 	//load_model("models/monkey.obj",models);
 	//load_model("models/camera.obj",models);
 	//load_model("models/Lowpoly_tree_sample.obj",models);
 	//load_model("models/vehicle.obj",models);
-	load_model("models/Jeep/Jeep_Renegade_2016.obj","models/Jeep/Jeep_Renegade_2016.mtl",models);
+	//load_model("models/Jeep/Jeep_Renegade_2016.obj","models/Jeep/Jeep_Renegade_2016.mtl",models);
 	//load_model("models/house_plant.obj",models);
 	//load_model("models/boat.obj",models);
 	//load_model("models/casa.obj",models);
@@ -451,7 +463,8 @@ void initialize() {
 	//load_model("models/drill.obj",models);
 	//load_model("models/Plane/Plane.obj","models/Plane/Plane.mtl",models);
 	//load_model("models/tugboat.obj",models);
-	//load_model("models/Suzuki_Carry.obj",models);
+	//load_model("models/Suzuki_Carry/Suzuki_Carry.obj","models/Suzuki_Carry/Suzuki_Carry.mtl",models);
+	load_model("models/Snowcat/Lowpoly_Snowcat_Small.obj","models/Snowcat/Lowpoly_Snowcat_Small.mtl",models);
 	//load_model("models/snowcat.obj",models);
 	//load_model("models/car.obj",models);
 	//load_model("models/tractor.obj",models);
