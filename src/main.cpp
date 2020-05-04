@@ -415,8 +415,6 @@ void render_mesh(Mesh *m) {
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
 
-	m->scale(1.1,1.1,1.1);
-
 	for (int i = 0; i<m->triangles(); i++) {
 		struct vertex clip_coords[4];
 		for (int j = 0; j<m->tf_list[i].size(); j++) {
