@@ -60,7 +60,7 @@ const float pm[4][4] = {
 
 //lighting
 const int lights = 3;
-float ambient_light[3] = {(float)(255.0f/255.0f),(float)(180.0f/255.0f),(float)(230.0f/255.0f)};
+float ambient_light[3] = {(float)(150.0f/255.0f),(float)(60.0f/255.0f),(float)(70.0f/255.0f)};
 float point_light[lights][6] = {
 
 	//{(float)(240.0f/255.0f),(float)(240.0f/255.0f),(float)(240.0f/255.0f),0,10,10}, 
@@ -411,9 +411,11 @@ void render_mesh(Mesh *m) {
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
 	float ty = -0.75f;
-	float tz = -9.0f;	
+	float tz = -6.0f;	
 	m->rotate_y(1.5f);
 	m->translate(tx,ty,tz);
+
+	m->scale(1.1,1.1,1.1);
 
 	for (int i = 0; i<m->triangles(); i++) {
 		struct vertex clip_coords[4];
@@ -445,7 +447,9 @@ void initialize() {
 	//load_model("models/cube.obj",models);
 	//load_model("models/Love.obj",models);
 	//load_model("models/orange/orangeOBJ.obj","models/orange/orangeOBJ.mtl",models);
-	//load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
+	//load_model("models/Forest/Forest.obj","models/Forest/Forest.mtl",models);
+	load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
+	//load_model("models/House/House.obj","models/House/House.mtl",models);
 	//load_model("models/Car/low_poly_911.obj","models/Car/low_poly_911.mtl",models);
 	//load_model("models/GT/SPECTER_GT3_.obj","models/GT/SPECTER_GT3_.mtl",models);
 	//load_model("models/suzanne.obj",models);
@@ -464,7 +468,7 @@ void initialize() {
 	//load_model("models/Plane/Plane.obj","models/Plane/Plane.mtl",models);
 	//load_model("models/tugboat.obj",models);
 	//load_model("models/Suzuki_Carry/Suzuki_Carry.obj","models/Suzuki_Carry/Suzuki_Carry.mtl",models);
-	load_model("models/Snowcat/Lowpoly_Snowcat_Small.obj","models/Snowcat/Lowpoly_Snowcat_Small.mtl",models);
+	//load_model("models/Snowcat/Lowpoly_Snowcat_Small.obj","models/Snowcat/Lowpoly_Snowcat_Small.mtl",models);
 	//load_model("models/snowcat.obj",models);
 	//load_model("models/car.obj",models);
 	//load_model("models/tractor.obj",models);
