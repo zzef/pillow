@@ -32,7 +32,7 @@ struct viewport {
 
 bool draw_vertex = false;
 bool backface_culling = true;
-bool draw_wireframe = true;
+bool draw_wireframe = false;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {40,40,40,255};					
@@ -48,7 +48,7 @@ const int fov = 90;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
 struct edge_pixel empty = {-1,NULL,0};
-const float pm[4][4] = {
+float pm[4][4] = {
 	
 	{ S/aspect_ratio, 0, 0, 0 },
 	{ 0, S, 0, 0 },
@@ -404,32 +404,41 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m) {
 	}
 }
 
+struct vertex apply_transformation(struct vertex* v, float m[4][4]) {
+
+	float x = ( v->x * m[0][0] ) + ( v->y * m[1][0] ) + ( v->z * m[2][0] ) + ( v->w * m[3][0] );
+	float y = ( v->x * m[0][1] ) + ( v->y * m[1][1] ) + ( v->z * m[2][1] ) + ( v->w * m[3][1] );
+	float z = ( v->x * m[0][2] ) + ( v->y * m[1][2] ) + ( v->z * m[2][2] ) + ( v->w * m[3][2] );
+	float w = ( v->x * m[0][3] ) + ( v->y * m[1][3] ) + ( v->z * m[2][3] ) + ( v->w * m[3][3] );	
+
+	struct vertex v2 = {x,y,z,w};
+	return v2;
+
+}
+
 void render_mesh(Mesh *m) {
 
 	unsigned char color[4] = {120,120,120,255};
-	float sf = 3.0f;
+	float sf = 2.5f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.6f;
-	float tz = -6.0f;
+	float ty = -0.5f;
+	float tz = -5.0f;
 	float tilt = 10.0f;	
 	m->rotate_y(1.5f);
 	m->rotate_x(-tilt);
 	m->translate(tx,ty,tz);
+	
+	//camera->lookat(0,0,0);
 
 	for (int i = 0; i<m->triangles(); i++) {
 		struct vertex clip_coords[4];
 		for (int j = 0; j<m->tf_list[i].size(); j++) {
 	
 			struct vertex* v = &(m->v_list[m->tf_list[i][j]-1]);
-
-			//Applying matrix projection to enter clip space				
-			float x = ( v->x * pm[0][0] ) + ( v->y * pm[1][0] ) + ( v->z * pm[2][0] ) + ( v->w * pm[3][0] );
-			float y = ( v->x * pm[0][1] ) + ( v->y * pm[1][1] ) + ( v->z * pm[2][1] ) + ( v->w * pm[3][1] );
-			float z = ( v->x * pm[0][2] ) + ( v->y * pm[1][2] ) + ( v->z * pm[2][2] ) + ( v->w * pm[3][2] );
-			float w = ( v->x * pm[0][3] ) + ( v->y * pm[1][3] ) + ( v->z * pm[2][3] ) + ( v->w * pm[3][3] );	
-
-			struct vertex vert = {x,y,z,w};
+			//float cam_transform[4][4] = camera.get_transform();
+	
+			struct vertex vert = apply_transformation(v,pm);
 			clip_coords[j] = vert;
 		}
 		render_triangle(clip_coords,m->tmat_list[i]);
@@ -450,6 +459,7 @@ void initialize() {
 	//load_model("models/orange/orangeOBJ.obj","models/orange/orangeOBJ.mtl",models);
 	//load_model("models/Forest/Forest.obj","models/Forest/Forest.mtl",models);
 	load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
+	//load_model("models/car2/car2.obj","models/car2/car2.mtl",models);
 	//load_model("models/House/House.obj","models/House/House.mtl",models);
 	//load_model("models/Car/low_poly_911.obj","models/Car/low_poly_911.mtl",models);
 	//load_model("models/GT/SPECTER_GT3_.obj","models/GT/SPECTER_GT3_.mtl",models);
