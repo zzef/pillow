@@ -24,6 +24,12 @@ float** Camera::get_transform() {
 	
 }
 
+void Camera::zoom(float val) {
+
+
+
+}
+
 void Camera::rotate_x(float deg) {
 
 	float angle = (float) (deg*M_PI)/180.0f;

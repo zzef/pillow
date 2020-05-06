@@ -11,7 +11,9 @@ class Camera {
 		
 		float eye_x = 0;	
 		float eye_y = 0;	
-		float eye_z = -1;	
+		float eye_z = -1;
+
+		float scale = 1;	
 
 		float transform[4][4] = {
 			
@@ -27,7 +29,8 @@ class Camera {
 		float** get_transform();
 		void update_transform();
 		void rotate_y(float deg);	
-		void rotate_x(float deg);	
+		void rotate_x(float deg);
+		void zoom(float val);	
 	
 };
 
