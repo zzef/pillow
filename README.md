@@ -11,5 +11,5 @@ Pillow is a software rendering engine built in C++. So far the engine features:
 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample3.gif">
+  <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample.gif?token=AFRVA2NHA63IZPUKCBPRGHK6WLU2K">
 </p>
