@@ -24,6 +24,46 @@ float** Camera::get_transform() {
 	
 }
 
+void Camera::rotate_x(float deg) {
+
+	float angle = (float) (deg*M_PI)/180.0f;
+
+	this->eye_x-=this->at_x;	
+	this->eye_y-=this->at_y;
+	this->eye_z-=this->at_z;
+
+	float newy = (this->eye_y*cos(angle))+(this->eye_z*sin(angle));
+	float newz = -(this->eye_y*sin(angle))+(this->eye_z*cos(angle));
+
+	this->eye_y=newy;
+	this->eye_z=newz;
+
+	this->eye_x+=at_x; 		
+	this->eye_y+=at_y; 		
+	this->eye_z+=at_z; 		
+	
+}
+
+void Camera::rotate_y(float deg) {
+
+	float angle = (float) (deg*M_PI)/180.0f;
+
+	this->eye_x-=this->at_x;	
+	this->eye_y-=this->at_y;
+	this->eye_z-=this->at_z;
+
+	float newx = (this->eye_x*cos(angle))-(this->eye_z*sin(angle));
+	float newz = (this->eye_x*sin(angle))+(this->eye_z*cos(angle));
+
+	this->eye_x=newx;
+	this->eye_z=newz;
+
+	this->eye_x+=at_x; 		
+	this->eye_y+=at_y; 		
+	this->eye_z+=at_z; 		
+	
+}
+
 void Camera::update_transform() {
 
 	Vec3 at(this->at_x,this->at_y,this->at_z);

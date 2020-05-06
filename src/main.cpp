@@ -67,7 +67,7 @@ float point_light[lights][6] = {
 	//{(float)(240.0f/255.0f),(float)(240.0f/255.0f),(float)(240.0f/255.0f),0,10,10}, 
 	{(float)(40.0f/255.0f),(float)(40.0f/255.0f),(float)(10.0f/255.0f),0,0,0},
 	{(float)(240.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),15,10,0},
-	{(float)(240.0f/255.0f),(float)(240.0f/255.0f),(float)(250.0f/255.0f),-15,10,0},
+	{(float)(240.0f/255.0f),(float)(240.0f/255.0f),(float)(250.0f/255.0f),0,4,4},
 
 }; 
 
@@ -212,7 +212,21 @@ void draw_point(int x, int y, float z, int weight) {
 	
 }
 
-void render_triangle(struct vertex clip_coords[4], struct mtl* m) {
+
+struct vertex apply_transformation(struct vertex* v, float m[4][4]) {
+
+	float x = ( v->x * m[0][0] ) + ( v->y * m[1][0] ) + ( v->z * m[2][0] ) + ( v->w * m[3][0] );
+	float y = ( v->x * m[0][1] ) + ( v->y * m[1][1] ) + ( v->z * m[2][1] ) + ( v->w * m[3][1] );
+	float z = ( v->x * m[0][2] ) + ( v->y * m[1][2] ) + ( v->z * m[2][2] ) + ( v->w * m[3][2] );
+	float w = ( v->x * m[0][3] ) + ( v->y * m[1][3] ) + ( v->z * m[2][3] ) + ( v->w * m[3][3] );	
+
+	struct vertex v2 = {x,y,z,w};
+	return v2;
+
+}
+
+
+void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera) {
 		
 	float r = 0;
 	float g = 0;
@@ -245,7 +259,17 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m) {
 	for (int i = 0; i<lights; i++) {
 		
 		//diffuse light
-		Vec3 light (point_light[i][3],point_light[i][4],-point_light[i][5]);
+
+		float lx = point_light[i][3];
+		float ly = point_light[i][4];
+		float lz = point_light[i][5];
+		float lw = 1;
+
+		struct vertex v0 = {lx,ly,lz,lw};
+		struct vertex v1 = apply_transformation(&v0,camera->transform);
+		struct vertex v2 = apply_transformation(&v1,projection_matrix);
+
+		Vec3 light (v2.x,v2.y,v2.z);
 		Vec3 to_light = light.res(mid2);
 		Vec3 l = to_light.normalize();			
 		Vec3 norm = f_norm.normalize();
@@ -403,35 +427,20 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m) {
 		}
 	}
 }
-
-struct vertex apply_transformation(struct vertex* v, float m[4][4]) {
-
-	float x = ( v->x * m[0][0] ) + ( v->y * m[1][0] ) + ( v->z * m[2][0] ) + ( v->w * m[3][0] );
-	float y = ( v->x * m[0][1] ) + ( v->y * m[1][1] ) + ( v->z * m[2][1] ) + ( v->w * m[3][1] );
-	float z = ( v->x * m[0][2] ) + ( v->y * m[1][2] ) + ( v->z * m[2][2] ) + ( v->w * m[3][2] );
-	float w = ( v->x * m[0][3] ) + ( v->y * m[1][3] ) + ( v->z * m[2][3] ) + ( v->w * m[3][3] );	
-
-	struct vertex v2 = {x,y,z,w};
-	return v2;
-
-}
-
 void render_mesh(Mesh *m, Camera *camera) {
 
 	unsigned char color[4] = {120,120,120,255};
 	float sf = 2.5f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = 2.0f;
-	float tz = -8.0f;
+	float ty = -0.5f;
+	float tz = 0.0f;
 	float tilt = 0.0f;	
-	m->rotate_y(1.5f);
+	//m->rotate_y(1.5f);
 	m->rotate_x(-tilt);
 	m->translate(tx,ty,tz);
-	camera->position(0,5,-2);	
-	camera->lookAt(tx,ty,tz);
+	camera->rotate_y(1.5f);
 	camera->update_transform();
-	//float** camera_matrix = camera->get_transform();
 	
 	for (int i = 0; i<m->triangles(); i++) {
 		struct vertex clip_coords[4];
@@ -441,7 +450,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 			struct vertex v2 = apply_transformation(&v1,projection_matrix);
 			clip_coords[j] = v2;
 		}
-		render_triangle(clip_coords,m->tmat_list[i]);
+		render_triangle(clip_coords,m->tmat_list[i],camera);
 	}
 	
 	m->translate(-tx,-ty,-tz);
@@ -524,6 +533,8 @@ int main(int argc, char* args[]) {
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
 	Camera* camera = new Camera();
+	camera->position(0,1,5);	
+	camera->lookAt(0,0,0);
 	int frames = 0;
 	clock_t before = clock();
 	initialize();

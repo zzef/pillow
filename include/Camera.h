@@ -25,7 +25,9 @@ class Camera {
 		void position(float x, float y, float z);
 		void lookAt(float x, float y, float z);
 		float** get_transform();
-		void update_transform();	
+		void update_transform();
+		void rotate_y(float deg);	
+		void rotate_x(float deg);	
 	
 };
 
