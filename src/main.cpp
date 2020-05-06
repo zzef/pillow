@@ -1,5 +1,6 @@
 #include "../include/includes.h"
 #include "../include/Mesh.h"
+#include "../include/Camera.h"
 #include "../include/Mesh_load.h"
 #include "../include/vector.h"
 #include "../include/display.h"
@@ -32,7 +33,7 @@ struct viewport {
 
 bool draw_vertex = false;
 bool backface_culling = true;
-bool draw_wireframe = false;
+bool draw_wireframe = true;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {40,40,40,255};					
@@ -48,7 +49,7 @@ const int fov = 90;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
 struct edge_pixel empty = {-1,NULL,0};
-float pm[4][4] = {
+float projection_matrix[4][4] = {
 	
 	{ S/aspect_ratio, 0, 0, 0 },
 	{ 0, S, 0, 0 },
@@ -328,7 +329,6 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m) {
 	};
 
 
-
 	get_pairs(poly_r,vertex_attributes,min,minx);
 	for (int l = 0; l<range; l++) {
 		int yval = l+min;
@@ -416,30 +416,30 @@ struct vertex apply_transformation(struct vertex* v, float m[4][4]) {
 
 }
 
-void render_mesh(Mesh *m) {
+void render_mesh(Mesh *m, Camera *camera) {
 
 	unsigned char color[4] = {120,120,120,255};
 	float sf = 2.5f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.5f;
-	float tz = -5.0f;
-	float tilt = 10.0f;	
+	float ty = 2.0f;
+	float tz = -8.0f;
+	float tilt = 0.0f;	
 	m->rotate_y(1.5f);
 	m->rotate_x(-tilt);
 	m->translate(tx,ty,tz);
+	camera->position(0,5,-2);	
+	camera->lookAt(tx,ty,tz);
+	camera->update_transform();
+	//float** camera_matrix = camera->get_transform();
 	
-	//camera->lookat(0,0,0);
-
 	for (int i = 0; i<m->triangles(); i++) {
 		struct vertex clip_coords[4];
 		for (int j = 0; j<m->tf_list[i].size(); j++) {
-	
-			struct vertex* v = &(m->v_list[m->tf_list[i][j]-1]);
-			//float cam_transform[4][4] = camera.get_transform();
-	
-			struct vertex vert = apply_transformation(v,pm);
-			clip_coords[j] = vert;
+			struct vertex v0 = m->v_list[m->tf_list[i][j]-1];
+			struct vertex v1 = apply_transformation(&v0,camera->transform);
+			struct vertex v2 = apply_transformation(&v1,projection_matrix);
+			clip_coords[j] = v2;
 		}
 		render_triangle(clip_coords,m->tmat_list[i]);
 	}
@@ -454,7 +454,7 @@ void initialize() {
 	//load_model("models/Tree low.obj",models);
 	//load_model("models/Gel Gun.obj",models);
 	//load_model("models/WindMill.obj",models);
-	//load_model("models/cube.obj",models);
+	//load_model("models/Cube/cube.obj","models/Cube/cube.mtl",models);
 	//load_model("models/Love.obj",models);
 	//load_model("models/orange/orangeOBJ.obj","models/orange/orangeOBJ.mtl",models);
 	//load_model("models/Forest/Forest.obj","models/Forest/Forest.mtl",models);
@@ -509,8 +509,8 @@ void initialize() {
 	
 }
 
-void render() {
-	render_mesh(models[selected]);	
+void render(Camera *camera) {
+	render_mesh(models[selected],camera);	
 }
 
 void update() {
@@ -523,6 +523,7 @@ int main(int argc, char* args[]) {
 	display->init();
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
+	Camera* camera = new Camera();
 	int frames = 0;
 	clock_t before = clock();
 	initialize();
@@ -534,7 +535,7 @@ int main(int argc, char* args[]) {
 			frames=0;
 		}
 		update();
-		render();
+		render(camera);
 		display->flip_buffer();
 		frames++;
 	}

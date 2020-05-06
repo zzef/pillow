@@ -30,6 +30,16 @@ Vec3 Vec3::mid(Vec3 v) {
 
 }
 
+Vec3 Vec3::mul(float mag) {
+
+	Vec3 n (
+		(this->x*mag),
+		(this->y*mag),
+		(this->z*mag)
+	);	
+	return n;
+}
+
 Vec3 Vec3::normalize() {
 
 	float norm = (float) (this->x*this->x)+(this->y*this->y)+(this->z*this->z);

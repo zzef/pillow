@@ -25,6 +25,7 @@ class Vec3 {
 		float dot(Vec3 v);
 		Vec3 normalize();
 		Vec3 mid(Vec3 v);
+		Vec3 mul(float mag);
 
 };
 

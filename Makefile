@@ -6,12 +6,15 @@ SDIR = src
 BDIR = .
 OBJDIR = .
 
-DEPS = $(OBJDIR)/vector.o $(OBJDIR)/Mesh.o $(OBJDIR)/Mesh_loader.o  $(OBJDIR)/display.o 
+DEPS = $(OBJDIR)/vector.o $(OBJDIR)/Mesh.o $(OBJDIR)/Mesh_loader.o  $(OBJDIR)/display.o $(OBJDIR)/Camera.o 
 
 $(BDIR)/pillow: $(DEPS) $(OBJDIR)/main.o
 	$(CC) -o $@ $^ $(LIBS)
 
 $(OBJDIR)/vector.o: $(SDIR)/vector.cpp $(IDIR)/vector.h $(BINC)
+	$(CC) -c -o $@ $<
+
+$(OBJDIR)/Camera.o: $(SDIR)/Camera.cpp $(IDIR)/Camera.h $(BINC) $(OBJDIR)/vector.o $(BINC) 
 	$(CC) -c -o $@ $<
 
 $(OBJDIR)/display.o: $(SDIR)/display.cpp $(IDIR)/display.h $(BINC)
