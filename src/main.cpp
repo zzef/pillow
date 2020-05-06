@@ -439,7 +439,7 @@ void render_mesh(Mesh *m, Camera *camera) {
 	//m->rotate_y(1.5f);
 	m->rotate_x(-tilt);
 	m->translate(tx,ty,tz);
-	//camera->rotate_y(1.5f);
+	camera->rotate_y(1.5f);
 	camera->zoom(0.5);
 	camera->update_transform();
 	
