@@ -12,9 +12,9 @@ Pillow is a software rendering engine built in C++. So far the engine features:
 ## How to run
 You will need linux to run. Please do the following to run the demo:
 
-`git clone https://github.com/zzef/pillow.git`
-`make`
-`./pillow`
+`git clone https://github.com/zzef/pillow.git
+make
+./pillow`
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample3.gif">
