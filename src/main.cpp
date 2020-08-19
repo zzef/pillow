@@ -1,7 +1,8 @@
 #include "../include/includes.h"
 #include "../include/Mesh.h"
+#include "../include/Model.h"
+#include "../include/Material.h" 
 #include "../include/Camera.h"
-#include "../include/Mesh_load.h"
 #include "../include/vector.h"
 #include "../include/display.h"
 
@@ -71,7 +72,7 @@ float point_light[lights][6] = {
 
 }; 
 
-std::vector<Mesh*> models;
+std::vector<Model*> models;
 Display* display;
 
 void get_pairs(struct vector3D poly_r[4],
@@ -227,7 +228,11 @@ struct vertex apply_transformation(struct vertex* v, float m[4][4]) {
 
 
 void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera) {
-		
+
+	float fill_r = 255;
+	float fill_g = 255;
+	float fill_b = 255;
+	
 	float r = 0;
 	float g = 0;
 	float b = 0;
@@ -242,6 +247,7 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 	struct vertex* v2 = &clip_coords[2];
 				
 	Vec3 vec0 (v0->x,v0->y,v0->w);
+
 	Vec3 vec1 (v1->x,v1->y,v1->w);
 	Vec3 vec2 (v2->x,v2->y,v2->w);
 	
@@ -249,13 +255,14 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 	Vec3 res2 = vec0.res(vec2);
 	
 	Vec3 f_norm = res1.cross(res2);	
+
 			
 	Vec3 vec4 (0,0,0);
 	Vec3 diff = vec4.res(vec0);
-		
+	
 	Vec3 mid1 = vec0.mid(vec1);
 	Vec3 mid2 = mid1.mid(vec2);
-
+	
 	for (int i = 0; i<lights; i++) {
 		
 		//diffuse light
@@ -294,19 +301,18 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 			b+=(h0*m->ks[2]*point_light[i][2]);	
 		}
 
-	}
-	
-	float fill_r=std::min(r*255.0f,255.0f);
-	float fill_g=std::min(g*255.0f,255.0f);
-	float fill_b=std::min(b*255.0f,255.0f);
-	
+	}	
+	fill_r=std::min(r*255.0f,255.0f);
+	fill_g=std::min(g*255.0f,255.0f);
+	fill_b=std::min(b*255.0f,255.0f);
+
+
 			//backface culling
 	if (backface_culling) {
 		if (f_norm.dot(diff)<0) 
 			return;
 	}
 		
-
 	//PERSPECTIVE DIVIDE HERE
 	int max = 0;
 	int maxx = 0;
@@ -342,7 +348,6 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 		//RASTER SPACE
 	const int range = max-min+1;	
 	const int rangex = maxx-minx+1;
-	
 	struct Color vertex_attributes[4] = {
 			
 		{fill_r,fill_g,fill_b},
@@ -427,7 +432,7 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 		}
 	}
 }
-void render_mesh(Mesh *m, Camera *camera) {
+void render_mesh(Model *m, Camera *camera) {
 
 	unsigned char color[4] = {120,120,120,255};
 	float sf = 2.5f;
@@ -444,14 +449,24 @@ void render_mesh(Mesh *m, Camera *camera) {
 	camera->update_transform();
 	
 	for (int i = 0; i<m->triangles(); i++) {
-		struct vertex clip_coords[4];
-		for (int j = 0; j<m->tf_list[i].size(); j++) {
-			struct vertex v0 = m->v_list[m->tf_list[i][j]-1];
-			struct vertex v1 = apply_transformation(&v0,camera->transform);
-			struct vertex v2 = apply_transformation(&v1,projection_matrix);
-			clip_coords[j] = v2;
-		}
-		render_triangle(clip_coords,m->tmat_list[i],camera);
+			
+		struct face f = m->faces.at(i);
+	
+		struct vertex *v00 = f.v0;
+		struct vertex v01 = apply_transformation(v00,camera->transform);
+		struct vertex v02 = apply_transformation(&v01,projection_matrix);
+	
+		struct vertex *v10 = f.v1;
+		struct vertex v11 = apply_transformation(v10,camera->transform);
+		struct vertex v12 = apply_transformation(&v11,projection_matrix);
+
+		struct vertex *v20 = f.v2;
+		struct vertex v21 = apply_transformation(v20,camera->transform);
+		struct vertex v22 = apply_transformation(&v21,projection_matrix);
+
+		struct vertex clip_coords[4] = {v02,v12,v22,v02};
+	
+		render_triangle(clip_coords,m->mats.at(i),camera);
 	}
 	
 	m->translate(-tx,-ty,-tz);
@@ -468,7 +483,47 @@ void initialize() {
 	//load_model("models/Love.obj",models);
 	//load_model("models/orange/orangeOBJ.obj","models/orange/orangeOBJ.mtl",models);
 	//load_model("models/Forest/Forest.obj","models/Forest/Forest.mtl",models);
-	load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
+	
+	Mesh *mesh = new Mesh();
+	mesh->load("models/Mill/low-poly-mill.obj");
+	mesh->display();
+
+	Material *material = new Material();
+	material->load("models/Mill/low-poly-mill.mtl");	
+	material->display();	
+
+	Model *model = new Model();
+	model->apply_attr(mesh);
+	model->apply_attr(material);
+	
+	models.push_back(model);
+
+	Mesh *mesh2 = new Mesh();
+	mesh2->load("models/suzanne.obj");
+	mesh2->display();
+
+	Model *model2 = new Model();
+	model2->apply_attr(mesh2);
+	
+	models.push_back(model2);
+
+
+	Mesh *mesh3 = new Mesh();
+	mesh3->load("models/Plane/Plane.obj");
+	mesh3->display();
+
+	Material *material3 = new Material();	
+	material3->load("models/Plane/Plane.mtl");	
+
+	Model *model3 = new Model();
+	model3->apply_attr(mesh3);
+	model3->apply_attr(material3);
+	
+	models.push_back(model3);
+
+
+	
+	//load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
 	//load_model("models/car2/car2.obj","models/car2/car2.mtl",models);
 	//load_model("models/House/House.obj","models/House/House.mtl",models);
 	//load_model("models/Car/low_poly_911.obj","models/Car/low_poly_911.mtl",models);
@@ -507,20 +562,22 @@ void initialize() {
 	//load_model("models/Pokemon.obj",models);
 
 
-	selected = 0;
-	models[selected]->normalize();
-	models[selected]->triangulate();
+	//selected = 0;
+	//models[selected]->normalize();
+	//models[selected]->triangulate();
 	//models[selected]->print_mesh();
-	printf("model: %s, triangles: %li, vertices: %li\n",
-		models[selected]->name.c_str(),
-		models[selected]->triangles(),
-		models[selected]->vertices()
-	);
+	//printf("model: %s, triangles: %li, vertices: %li\n",
+	//	models[selected]->name.c_str(),
+	//	models[selected]->triangles(),
+	//	models[selected]->vertices()
+	//);
 	
 }
 
 void render(Camera *camera) {
-	render_mesh(models[selected],camera);	
+	for(int i = 0; i<models.size(); i++) {
+		render_mesh(models[i],camera);
+	}	
 }
 
 void update() {

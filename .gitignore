@@ -2,3 +2,5 @@ pillow
 *.o
 questions
 project
+session
+feedback
