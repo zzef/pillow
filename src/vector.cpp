@@ -43,7 +43,7 @@ Vec3 Vec3::mul(float mag) {
 Vec3 Vec3::normalize() {
 
 	float norm = (float) (this->x*this->x)+(this->y*this->y)+(this->z*this->z);
-	float invsqrt = (float) 1/sqrtf(norm);
+	float invsqrt = (float) 1.0f/sqrtf(norm);
 
 	Vec3 n (
 		this->x*invsqrt,			

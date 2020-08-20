@@ -11,10 +11,10 @@ DEPS = $(OBJDIR)/vector.o $(OBJDIR)/Mesh.o  $(OBJDIR)/display.o $(OBJDIR)/Camera
 $(BDIR)/pillow: $(DEPS) $(OBJDIR)/main.o
 	$(CC) -o $@ $^ $(LIBS)
 
-$(OBJDIR)/Model.o: $(SDIR)/Model.cpp $(IDIR)/Model.h $(BINC)
+$(OBJDIR)/Model.o: $(SDIR)/Model.cpp $(IDIR)/Model.h $(IDIR)/Resource.h $(BINC)
 	$(CC) -c -o $@ $<
 
-$(OBJDIR)/Material.o: $(SDIR)/Material.cpp $(IDIR)/Material.h $(BINC)
+$(OBJDIR)/Material.o: $(SDIR)/Material.cpp $(IDIR)/Material.h $(IDIR)/Resource.h $(BINC)
 	$(CC) -c -o $@ $<
 
 $(OBJDIR)/utils.o:$(SDIR)/utils.cpp $(IDIR)/utils.h $(BINC)

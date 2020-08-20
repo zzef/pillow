@@ -12,6 +12,11 @@ struct face {
 class Model {
 
 
+	private:
+		void cleanup_materials();
+		void cleanup_faces();
+		void cleanup_vertices();
+
 	public:
 		std::vector<struct vertex> vertices;
 		std::map<std::string,struct mtl*> materials;

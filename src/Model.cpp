@@ -15,7 +15,35 @@ Model::Model() {
 }
 
 Model::~Model() {
+	this->cleanup_materials();
+	//this->cleanup_faces();
+	//this->cleanup_vertices();
+}
+
+void Model::cleanup_vertices() {
+	for (int i = 0; i<vertices.size(); i++) {
+		free(&this->vertices[i]);
+	}
+}
+
+void Model::cleanup_faces() {
+	for (int i = 0; i<faces.size(); i++) {
+		free(&this->faces[i]);
+	}
+}
+
+void Model::cleanup_materials() {
 	
+	std::map<std::string, struct mtl*>::iterator it = this->materials.begin();
+	
+	while(it != this->materials.end()) {
+		std::cout << it->first << std::endl;
+		free(it->second);
+		it++;
+	}
+	
+	materials.clear();
+
 }
 
 void Model::apply_attr(Material *material) {
@@ -64,7 +92,6 @@ void Model::store_materials() {
 			}
 		}
 		else {
-			printf("dfdfdf\n");
 			mat_p = this->materials["default"];	
 		}
 

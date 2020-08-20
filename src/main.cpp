@@ -34,7 +34,7 @@ struct viewport {
 
 bool draw_vertex = false;
 bool backface_culling = true;
-bool draw_wireframe = true;
+bool draw_wireframe = false;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {40,40,40,255};					
@@ -61,14 +61,16 @@ float projection_matrix[4][4] = {
 
 
 //lighting
-const int lights = 3;
-float ambient_light[3] = {(float)(150.0f/255.0f),(float)(60.0f/255.0f),(float)(70.0f/255.0f)};
+float light_move=0;
+const int lights = 5;
+float ambient_light[3] = {(float)(100.0f/255.0f),(float)(60.0f/255.0f),(float)(70.0f/255.0f)};
 float point_light[lights][6] = {
 
-	//{(float)(240.0f/255.0f),(float)(240.0f/255.0f),(float)(240.0f/255.0f),0,10,10}, 
-	{(float)(40.0f/255.0f),(float)(40.0f/255.0f),(float)(10.0f/255.0f),0,0,0},
-	{(float)(240.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),15,10,0},
-	{(float)(240.0f/255.0f),(float)(240.0f/255.0f),(float)(250.0f/255.0f),0,4,4},
+	{(float)(200.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),0,0,-20}, 
+	{(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,10,3}, 
+	{(float)(200.0f/255.0f),(float)(180.0f/255.0f),(float)(180.0f/255.0f),0,0,10},
+	{(float)(180.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),15,0,0},
+	{(float)(180.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),-15,0,0},
 
 }; 
 
@@ -255,7 +257,6 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 	Vec3 res2 = vec0.res(vec2);
 	
 	Vec3 f_norm = res1.cross(res2);	
-
 			
 	Vec3 vec4 (0,0,0);
 	Vec3 diff = vec4.res(vec0);
@@ -282,32 +283,32 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 		Vec3 norm = f_norm.normalize();
 				
 		float h = std::max(l.dot(norm),0.0f);
-		float h2 = h*2;
 		r+=(h*m->kd[0]*point_light[i][0]);
 		g+=(h*m->kd[1]*point_light[i][1]);
 		b+=(h*m->kd[2]*point_light[i][2]);
-		
+			
 		//specular light
-		Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
-		Vec3 reflected = l.res(ref1);
-		Vec3 to_cam = vec4.res(mid2).normalize();
-				
-		float rfdot = (float) reflected.dot(to_cam);
-		if (rfdot>0) {
-				
-			float h0 = pow(rfdot,shininess);	
-			r+=(h0*m->ks[0]*point_light[i][0]);
-			g+=(h0*m->ks[1]*point_light[i][1]);
-			b+=(h0*m->ks[2]*point_light[i][2]);	
-		}
 
+		Vec3 lr = l.mul(-1);
+		float h2 = lr.dot(norm)*2;
+		Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
+		Vec3 reflected = lr.res(ref1);
+		Vec3 to_cam = mid2.res(vec4).normalize();
+				
+		float rfdot = (float) to_cam.dot(reflected);
+		
+		float h0 = pow(std::max(rfdot,0.0f),shininess+1);	
+		r+=(h0*m->ks[0]*point_light[i][0]);
+		g+=(h0*m->ks[1]*point_light[i][1]);
+		b+=(h0*m->ks[2]*point_light[i][2]);	
+		
 	}	
 	fill_r=std::min(r*255.0f,255.0f);
 	fill_g=std::min(g*255.0f,255.0f);
 	fill_b=std::min(b*255.0f,255.0f);
 
 
-			//backface culling
+	//backface culling
 	if (backface_culling) {
 		if (f_norm.dot(diff)<0) 
 			return;
@@ -434,18 +435,21 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 }
 void render_mesh(Model *m, Camera *camera) {
 
+	//point_light[0][5]+=0.02f;
+	//point_light[1][5]+=0.02f;
 	unsigned char color[4] = {120,120,120,255};
-	float sf = 2.5f;
+	float sf = 1.8f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.5f;
+	float ty = -0.0f;
 	float tz = 0.0f;
 	float tilt = 0.0f;	
 	//m->rotate_y(1.5f);
-	m->rotate_x(-tilt);
+	//m->rotate_x(-tilt);
 	m->translate(tx,ty,tz);
-	camera->rotate_y(1.5f);
-	camera->zoom(0.5);
+	float dir = 1.5f;
+	camera->rotate_y(dir);
+	//camera->zoom(0.01);
 	camera->update_transform();
 	
 	for (int i = 0; i<m->triangles(); i++) {
@@ -468,7 +472,7 @@ void render_mesh(Model *m, Camera *camera) {
 	
 		render_triangle(clip_coords,m->mats.at(i),camera);
 	}
-	
+	//camera->rotate_y(-dir);
 	m->translate(-tx,-ty,-tz);
 	m->rotate_x(tilt);
 	m->scale(1/sf,1/sf,1/sf);
@@ -499,13 +503,13 @@ void initialize() {
 	models.push_back(model);
 
 	Mesh *mesh2 = new Mesh();
-	mesh2->load("models/suzanne.obj");
+	mesh2->load("models/monkey.obj");
 	mesh2->display();
 
 	Model *model2 = new Model();
 	model2->apply_attr(mesh2);
 	
-	models.push_back(model2);
+	//models.push_back(model2);
 
 
 	Mesh *mesh3 = new Mesh();
@@ -519,7 +523,22 @@ void initialize() {
 	model3->apply_attr(mesh3);
 	model3->apply_attr(material3);
 	
-	models.push_back(model3);
+	//models.push_back(model3);
+
+
+	Mesh *mesh4 = new Mesh();
+	mesh4->load("models/Snowcat/Lowpoly_Snowcat_Small.obj");
+	mesh4->display();
+
+	Material *material4 = new Material();	
+	material4->load("models/Snowcat/Lowpoly_Snowcat_Small.mtl");	
+
+	Model *model4 = new Model();
+	model4->apply_attr(mesh4);
+	model4->apply_attr(material4);
+	
+	//models.push_back(model4);
+
 
 
 	
