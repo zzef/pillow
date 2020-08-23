@@ -11,7 +11,7 @@ class Camera {
 		
 		float eye_x = 0;	
 		float eye_y = 0;	
-		float eye_z = -1;
+		float eye_z = 0;
 
 		float scale = 1;	
 

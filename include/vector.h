@@ -20,8 +20,10 @@ class Vec3 {
 		float z;
 		
 		Vec3(float x, float y, float z);
+		void print();
 		Vec3 cross(Vec3 v);
 		Vec3 res(Vec3 v);
+		Vec3 add(Vec3 v);
 		float dot(Vec3 v);
 		Vec3 normalize();
 		Vec3 mid(Vec3 v);

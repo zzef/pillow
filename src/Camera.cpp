@@ -34,6 +34,7 @@ void Camera::rotate_x(float deg) {
 
 	float angle = (float) (deg*M_PI)/180.0f;
 
+
 	this->eye_x-=this->at_x;	
 	this->eye_y-=this->at_y;
 	this->eye_z-=this->at_z;

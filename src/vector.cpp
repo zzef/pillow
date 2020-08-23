@@ -7,6 +7,10 @@ Vec3::Vec3(float x, float y, float z) {
 	this->z=z;
 }
 
+void Vec3::print() {
+	printf("(%f %f %f)\n",this->x,this->y,this->z);
+}
+
 Vec3 Vec3::cross(Vec3 v) {			
 	Vec3 n (
 		(this->y * v.z) - (this->z * v.y),
@@ -53,6 +57,17 @@ Vec3 Vec3::normalize() {
 	return n;
 	
 }
+
+Vec3 Vec3::add(Vec3 v) {
+			
+	Vec3 n (
+		v.x+this->x,
+		v.y+this->y,
+		v.z+this->z
+	);
+	return n;
+	
+}	
 
 Vec3 Vec3::res(Vec3 v) {
 			

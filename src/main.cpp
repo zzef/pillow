@@ -5,6 +5,7 @@
 #include "../include/Camera.h"
 #include "../include/vector.h"
 #include "../include/display.h"
+#include "../include/utils.h"
 
 #define WIN_WIDTH 1280
 #define WIN_HEIGHT 720
@@ -35,12 +36,14 @@ struct viewport {
 bool draw_vertex = false;
 bool backface_culling = true;
 bool draw_wireframe = false;
+bool draw_lights = false;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
-unsigned char pc[4] = {40,40,40,255};					
+unsigned char pc[4] = {255,255,255,255};					
 const unsigned char wf[3] = {40,40,40};					
+const unsigned char wf2[3] = {255,255,0};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {98,200,214,255};
+unsigned char clear_color[4] = {220,220,220,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -63,19 +66,20 @@ float projection_matrix[4][4] = {
 //lighting
 float light_move=0;
 const int lights = 5;
-float ambient_light[3] = {(float)(100.0f/255.0f),(float)(60.0f/255.0f),(float)(70.0f/255.0f)};
+float ambient_light[3] = {(float)(60.0f/255.0f),(float)(60.0f/255.0f),(float)(60.0f/255.0f)};
 float point_light[lights][6] = {
 
-	{(float)(200.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),0,0,-20}, 
-	{(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,10,3}, 
-	{(float)(200.0f/255.0f),(float)(180.0f/255.0f),(float)(180.0f/255.0f),0,0,10},
-	{(float)(180.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),15,0,0},
-	{(float)(180.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),-15,0,0},
+	{(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,5,-20}, 
+	{(float)(160.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),0,5,20}, 
+	{(float)(100.0f/255.0f),(float)(100.0f/255.0f),(float)(100.0f/255.0f),0,10,0},
+	{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),20,5,0},
+	{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),-20,5,0},
 
 }; 
 
 std::vector<Model*> models;
 Display* display;
+
 
 void get_pairs(struct vector3D poly_r[4],
 	struct Color v_a[4], int min,int minx
@@ -215,6 +219,34 @@ void draw_point(int x, int y, float z, int weight) {
 	
 }
 
+void draw_line(float stx, float sty, float ex, float ey) {
+			
+		int x0 = (int) stx;
+		int y0 = (int) sty;
+		int x1 = (int) ex; 
+		int y1 = (int) ey;
+
+
+		int dx = abs(x1-x0);
+		int dy = abs(y1-y0);
+
+		int sx = (x0 < x1) ? 1 : -1;
+		int sy = (y0 < y1) ? 1 : -1;
+		
+		int err = dx - dy;
+		unsigned char c[4] = {wf2[0],wf2[1],wf2[2],255};	
+		int index = 0;
+		while(true) {
+			display->set_pixel(x0,y0,c,-100);;
+			if ((x0==x1) && (y0==y1)) break;
+			int e2 = 2 * err;
+			if (e2 > -dy) { err -= dy; x0 += sx; }
+			if (e2 < dx) { err += dx; y0 += sy; }
+			index++;
+		}
+
+}
+
 
 struct vertex apply_transformation(struct vertex* v, float m[4][4]) {
 
@@ -228,91 +260,20 @@ struct vertex apply_transformation(struct vertex* v, float m[4][4]) {
 
 }
 
+void draw_vector(Vec3 v1, Vec3 v2) {
 
-void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera) {
-
-	float fill_r = 255;
-	float fill_g = 255;
-	float fill_b = 255;
+	float x = (v1.x/v1.z)*WIN_WIDTH + (WIN_WIDTH/2);
+	float y = (-v1.y/v1.z)*WIN_HEIGHT + (WIN_HEIGHT/2);
 	
-	float r = 0;
-	float g = 0;
-	float b = 0;
-	float shininess = m->Ns;		
+	float x1 = (v2.x/v2.z)*WIN_WIDTH + (WIN_WIDTH/2);
+	float y1 = (-v2.y/v2.z)*WIN_HEIGHT + (WIN_HEIGHT/2);
 
-	r+=(ambient_light[0]*m->ka[0]);
-	g+=(ambient_light[1]*m->ka[1]);
-	b+=(ambient_light[2]*m->ka[2]);
-	
-	struct vertex* v0 = &clip_coords[0];
-	struct vertex* v1 = &clip_coords[1];
-	struct vertex* v2 = &clip_coords[2];
-				
-	Vec3 vec0 (v0->x,v0->y,v0->w);
+	draw_line(x,y,x1,y1);	
 
-	Vec3 vec1 (v1->x,v1->y,v1->w);
-	Vec3 vec2 (v2->x,v2->y,v2->w);
-	
-	Vec3 res1 = vec0.res(vec1);
-	Vec3 res2 = vec0.res(vec2);
-	
-	Vec3 f_norm = res1.cross(res2);	
-			
-	Vec3 vec4 (0,0,0);
-	Vec3 diff = vec4.res(vec0);
-	
-	Vec3 mid1 = vec0.mid(vec1);
-	Vec3 mid2 = mid1.mid(vec2);
-	
-	for (int i = 0; i<lights; i++) {
-		
-		//diffuse light
+}
 
-		float lx = point_light[i][3];
-		float ly = point_light[i][4];
-		float lz = point_light[i][5];
-		float lw = 1;
+void render_triangle(struct vertex* clip_coords[4], int fill_r, int fill_g, int fill_b) {
 
-		struct vertex v0 = {lx,ly,lz,lw};
-		struct vertex v1 = apply_transformation(&v0,camera->transform);
-		struct vertex v2 = apply_transformation(&v1,projection_matrix);
-
-		Vec3 light (v2.x,v2.y,v2.z);
-		Vec3 to_light = light.res(mid2);
-		Vec3 l = to_light.normalize();			
-		Vec3 norm = f_norm.normalize();
-				
-		float h = std::max(l.dot(norm),0.0f);
-		r+=(h*m->kd[0]*point_light[i][0]);
-		g+=(h*m->kd[1]*point_light[i][1]);
-		b+=(h*m->kd[2]*point_light[i][2]);
-			
-		//specular light
-
-		Vec3 lr = l.mul(-1);
-		float h2 = lr.dot(norm)*2;
-		Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
-		Vec3 reflected = lr.res(ref1);
-		Vec3 to_cam = mid2.res(vec4).normalize();
-				
-		float rfdot = (float) to_cam.dot(reflected);
-		
-		float h0 = pow(std::max(rfdot,0.0f),shininess+1);	
-		r+=(h0*m->ks[0]*point_light[i][0]);
-		g+=(h0*m->ks[1]*point_light[i][1]);
-		b+=(h0*m->ks[2]*point_light[i][2]);	
-		
-	}	
-	fill_r=std::min(r*255.0f,255.0f);
-	fill_g=std::min(g*255.0f,255.0f);
-	fill_b=std::min(b*255.0f,255.0f);
-
-
-	//backface culling
-	if (backface_culling) {
-		if (f_norm.dot(diff)<0) 
-			return;
-	}
 		
 	//PERSPECTIVE DIVIDE HERE
 	int max = 0;
@@ -322,10 +283,10 @@ void render_triangle(struct vertex clip_coords[4], struct mtl* m, Camera* camera
 	struct vector3D poly_r[4];
 	for (int k = 0; k<=3; k++) {
 
-		struct vertex *v = &clip_coords[k];
+		struct vertex *v = clip_coords[k];
 		float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
 		float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-		float z = v->z;
+		float z = v->w;
 		struct vector3D r1 = {x,y,1/z};
 
 		if (draw_vertex)
@@ -438,158 +399,213 @@ void render_mesh(Model *m, Camera *camera) {
 	//point_light[0][5]+=0.02f;
 	//point_light[1][5]+=0.02f;
 	unsigned char color[4] = {120,120,120,255};
-	float sf = 1.8f;
+	float sf = 1.25f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.0f;
+	float ty = -0.4f;
 	float tz = 0.0f;
 	float tilt = 0.0f;	
 	//m->rotate_y(1.5f);
 	//m->rotate_x(-tilt);
+	camera->lookAt(tx,ty,tz);
 	m->translate(tx,ty,tz);
 	float dir = 1.5f;
+	//camera->rotate_x(dir);
 	camera->rotate_y(dir);
 	//camera->zoom(0.01);
 	camera->update_transform();
 	
+	std::vector<Vec3> all_lights;
+
+	for (int i = 0; i<lights; i++) {	
+	
+		float lx = point_light[i][3];
+		float ly = point_light[i][4];
+		float lz = point_light[i][5];
+		float lw = 1;
+
+		struct vertex v0 = {lx,ly,lz,lw};
+		struct vertex v1 = apply_transformation(&v0,camera->transform);		
+		Vec3 light (v1.x,v1.y,v1.z);
+		all_lights.push_back(light);
+
+		struct vertex v2 = apply_transformation(&v1,projection_matrix);
+		if (draw_lights) {
+			//printf(" - %f %f\n",v2.x,v2.y);
+			float _x = (v2.x/v2.w)*WIN_WIDTH + (WIN_WIDTH/2);
+			float _y =  (-v2.y/v2.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
+			float _z = v2.z;
+			//printf("%f %f draw\n",_x,_y);
+			draw_point(_x,_y,_z,20);
+		}
+
+	}
+
 	for (int i = 0; i<m->triangles(); i++) {
-			
+	
+		struct mtl* mat = m->mats.at(i);
+		//if (!(i==4 || i==5))
+		//	continue;
+	
 		struct face f = m->faces.at(i);
-	
+		//printf("triangle %i ",i);	
 		struct vertex *v00 = f.v0;
-		struct vertex v01 = apply_transformation(v00,camera->transform);
-		struct vertex v02 = apply_transformation(&v01,projection_matrix);
-	
 		struct vertex *v10 = f.v1;
-		struct vertex v11 = apply_transformation(v10,camera->transform);
-		struct vertex v12 = apply_transformation(&v11,projection_matrix);
-
 		struct vertex *v20 = f.v2;
-		struct vertex v21 = apply_transformation(v20,camera->transform);
-		struct vertex v22 = apply_transformation(&v21,projection_matrix);
 
-		struct vertex clip_coords[4] = {v02,v12,v22,v02};
+		//world space
+		
+		struct vertex v01 = apply_transformation(v00,camera->transform);
+		struct vertex v11 = apply_transformation(v10,camera->transform);
+		struct vertex v21 = apply_transformation(v20,camera->transform);
+
+		//view space
+
+		Vec3 vec0 (v01.x,v01.y,v01.z);
+		Vec3 vec1 (v11.x,v11.y,v11.z);
+		Vec3 vec2 (v21.x,v21.y,v21.z);
 	
-		render_triangle(clip_coords,m->mats.at(i),camera);
+		Vec3 res1 = vec0.res(vec1);
+		Vec3 res2 = vec0.res(vec2);
+	
+		Vec3 f_norm = res1.cross(res2).normalize();	
+				
+		Vec3 vec4 (0,0,0);
+		Vec3 diff = vec0;
+
+		//backface culling
+
+		if (backface_culling) {
+			if (f_norm.dot(diff)>0) 
+				continue;
+		}
+
+		//lighting	
+
+		float fill_r = 255;
+		float fill_g = 255;
+		float fill_b = 255;
+	
+		float r = 0;
+		float g = 0;
+		float b = 0;
+		float shininess = mat->Ns;		
+
+		r+=(ambient_light[0]*mat->ka[0]);
+		g+=(ambient_light[1]*mat->ka[1]);
+		b+=(ambient_light[2]*mat->ka[2]);
+	
+		Vec3 mid1 = vec0.mid(vec1);
+		Vec3 mid2 = mid1.mid(vec2);
+	
+		for (int i = 0; i<all_lights.size(); i++) {
+			//diffuse light
+			Vec3 light = all_lights[i];
+			Vec3 to_light = mid2.res(light);
+			//draw_vector(light,mid2);
+			Vec3 normd = f_norm.mul(-0.1);
+			Vec3 nn = mid2.add(normd);
+			//draw_vector(mid2,nn);
+			Vec3 l = to_light.normalize();	
+		
+			Vec3 norm = f_norm;	
+			float h = std::max(l.dot(norm),0.0f);
+			if (h>0) {
+				//printf("dot product = %f\n",l.dot(norm));
+				//l.print();
+				//norm.print();
+			}
+			else {
+				//printf("\n");
+			}
+			//printf("%f dot product \n",h);
+
+			r+=(h*mat->kd[0]*point_light[i][0]);
+			g+=(h*mat->kd[1]*point_light[i][1]);
+			b+=(h*mat->kd[2]*point_light[i][2]);
+			
+			//specular light
+
+			Vec3 lr = l.mul(1);
+			float h2 = lr.dot(norm)*2;
+			Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
+			Vec3 reflected = lr.res(ref1);
+			Vec3 to_cam = mid2.res(vec4).normalize();
+				
+			float rfdot = (float) to_cam.dot(reflected);
+		
+			float h0 = pow(std::max(rfdot,0.0f),shininess);	
+			r+=(h0*mat->ks[0]*point_light[i][0]);
+			g+=(h0*mat->ks[1]*point_light[i][1]);
+			b+=(h0*mat->ks[2]*point_light[i][2]);
+	
+		}	
+
+		
+		fill_r=std::min(r*255.0f,255.0f);
+		fill_g=std::min(g*255.0f,255.0f);
+		fill_b=std::min(b*255.0f,255.0f);
+
+		//--------
+
+		struct vertex v02 = apply_transformation(&v01,projection_matrix);
+		struct vertex v12 = apply_transformation(&v11,projection_matrix);
+		struct vertex v22 = apply_transformation(&v21,projection_matrix);
+		struct vertex* clip_coords[4] = {&v02,&v12,&v22,&v02};
+	
+		//Normalized Device Coordinates	
+		
+		render_triangle(clip_coords,fill_r,fill_g,fill_b);
 	}
 	//camera->rotate_y(-dir);
 	m->translate(-tx,-ty,-tz);
-	m->rotate_x(tilt);
+	//m->rotate_x(tilt);
 	m->scale(1/sf,1/sf,1/sf);
 }
 
-void initialize() {
+void load_models(std::vector<std::string> paths) {
 
-	//load_model("models/Tree low.obj",models);
-	//load_model("models/Gel Gun.obj",models);
-	//load_model("models/WindMill.obj",models);
-	//load_model("models/Cube/cube.obj","models/Cube/cube.mtl",models);
-	//load_model("models/Love.obj",models);
-	//load_model("models/orange/orangeOBJ.obj","models/orange/orangeOBJ.mtl",models);
-	//load_model("models/Forest/Forest.obj","models/Forest/Forest.mtl",models);
+
+	for (int i = 0; i < paths.size(); i++) {
+
+		std::string mesh_path = paths[i]+".obj";
+		std::string mtl_path = paths[i]+".mtl";
+		
+		printf(">>%s\n",mesh_path.c_str());
+
+		bool loaded;
+
+		Mesh *mesh = new Mesh();
+		loaded = mesh->load(mesh_path);
+
+		if (loaded) {
+			mesh->display();
+		}
+		else {
+			std::cout << "Could not load: " << mesh_path << std::endl;
+		}
+
+		Material *material = new Material();
+		loaded = material->load(mtl_path);	
+
+		if (loaded) {
+			material->display();
+		}
+		else {
+			std::cout << "Could not load: " << mtl_path << std::endl;
+		}
+
+		material->display();	
+		
+		Model *model = new Model();
+		model->apply_attr(mesh);
+		model->apply_attr(material);
+		
+		models.push_back(model);	
 	
-	Mesh *mesh = new Mesh();
-	mesh->load("models/Mill/low-poly-mill.obj");
-	mesh->display();
+		printf("model size %d\n",models.size());
 
-	Material *material = new Material();
-	material->load("models/Mill/low-poly-mill.mtl");	
-	material->display();	
-
-	Model *model = new Model();
-	model->apply_attr(mesh);
-	model->apply_attr(material);
-	
-	models.push_back(model);
-
-	Mesh *mesh2 = new Mesh();
-	mesh2->load("models/monkey.obj");
-	mesh2->display();
-
-	Model *model2 = new Model();
-	model2->apply_attr(mesh2);
-	
-	//models.push_back(model2);
-
-
-	Mesh *mesh3 = new Mesh();
-	mesh3->load("models/Plane/Plane.obj");
-	mesh3->display();
-
-	Material *material3 = new Material();	
-	material3->load("models/Plane/Plane.mtl");	
-
-	Model *model3 = new Model();
-	model3->apply_attr(mesh3);
-	model3->apply_attr(material3);
-	
-	//models.push_back(model3);
-
-
-	Mesh *mesh4 = new Mesh();
-	mesh4->load("models/Snowcat/Lowpoly_Snowcat_Small.obj");
-	mesh4->display();
-
-	Material *material4 = new Material();	
-	material4->load("models/Snowcat/Lowpoly_Snowcat_Small.mtl");	
-
-	Model *model4 = new Model();
-	model4->apply_attr(mesh4);
-	model4->apply_attr(material4);
-	
-	//models.push_back(model4);
-
-
-
-	
-	//load_model("models/Mill/low-poly-mill.obj","models/Mill/low-poly-mill.mtl",models);
-	//load_model("models/car2/car2.obj","models/car2/car2.mtl",models);
-	//load_model("models/House/House.obj","models/House/House.mtl",models);
-	//load_model("models/Car/low_poly_911.obj","models/Car/low_poly_911.mtl",models);
-	//load_model("models/GT/SPECTER_GT3_.obj","models/GT/SPECTER_GT3_.mtl",models);
-	//load_model("models/suzanne.obj",models);
-	//load_model("models/monkey.obj",models);
-	//load_model("models/camera.obj",models);
-	//load_model("models/Lowpoly_tree_sample.obj",models);
-	//load_model("models/vehicle.obj",models);
-	//load_model("models/Jeep/Jeep_Renegade_2016.obj","models/Jeep/Jeep_Renegade_2016.mtl",models);
-	//load_model("models/house_plant.obj",models);
-	//load_model("models/boat.obj",models);
-	//load_model("models/casa.obj",models);
-	//load_model("models/well.obj",models);
-	//load_model("models/crow.obj",models);
-	//load_model("models/tank.obj",models);
-	//load_model("models/drill.obj",models);
-	//load_model("models/Plane/Plane.obj","models/Plane/Plane.mtl",models);
-	//load_model("models/tugboat.obj",models);
-	//load_model("models/Suzuki_Carry/Suzuki_Carry.obj","models/Suzuki_Carry/Suzuki_Carry.mtl",models);
-	//load_model("models/Snowcat/Lowpoly_Snowcat_Small.obj","models/Snowcat/Lowpoly_Snowcat_Small.mtl",models);
-	//load_model("models/snowcat.obj",models);
-	//load_model("models/car.obj",models);
-	//load_model("models/tractor.obj",models);
-	//load_model("models/treecartoon.obj",models);
-	//load_model("models/lighthouse.obj",models);
-	//load_model("models/rallycar.obj",models);
-	//load_model("models/voxel.obj",models);
-	//load_model("models/lowpolytree.obj",models);
-	//load_model("models/untitled.obj",models);
-	//load_model("models/Boat.obj",models);
-	//load_model("models/armytruck.obj",models);
-	//load_model("models/Boat0.obj",models);
-	//load_model("models/ship.obj",models);
-	//load_model("models/Lowpoly_Helicopter.obj",models);
-	//load_model("models/Pokemon.obj",models);
-
-
-	//selected = 0;
-	//models[selected]->normalize();
-	//models[selected]->triangulate();
-	//models[selected]->print_mesh();
-	//printf("model: %s, triangles: %li, vertices: %li\n",
-	//	models[selected]->name.c_str(),
-	//	models[selected]->triangles(),
-	//	models[selected]->vertices()
-	//);
+	}
 	
 }
 
@@ -604,17 +620,34 @@ void update() {
 }
 
 int main(int argc, char* args[]) {
+
 	
 	display = new Display(WIN_WIDTH,WIN_HEIGHT,WINDOW_TITLE);
 	display->init();
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
 	Camera* camera = new Camera();
-	camera->position(0,1,5);	
+	camera->position(0,1,3);	
 	camera->lookAt(0,0,0);
 	int frames = 0;
 	clock_t before = clock();
-	initialize();
+
+	std::vector<std::string> models;
+
+	for (int i = 0; i < argc; i++) {
+		std::vector<std::string> tmp;
+		const std::string str(args[i]);
+		std::cout << str << std::endl;
+		_split(str,tmp,'.');
+		if (tmp.size()>1) {
+			std::cout << tmp[0] << std::endl;
+			if (tmp[1]=="obj") {
+				models.push_back(tmp[0]);
+			}
+		}
+	}	
+
+	load_models(models);
 	while(1) {
 		display->clear_buffer();
 		if((clock() - before) / CLOCKS_PER_SEC > 1) {
@@ -631,3 +664,5 @@ int main(int argc, char* args[]) {
 
 	return 0;
 }
+
+

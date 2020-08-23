@@ -22,6 +22,7 @@ bool Mesh::load(std::string path) {
 				continue;
 			_split(line,line_p);
 			if (line_p[0]=="usemtl") {
+				//printf("material %s\n", line_p[1]);
 				curr_mat = line_p[1];	
 			}
 			else if (line_p[0]=="v") {
@@ -35,12 +36,19 @@ bool Mesh::load(std::string path) {
 				std::vector<long> indices;
 				for (int i = 1; i<line_p.size(); i++) {
 					std::vector<std::string> index;
-					_split(line_p[i],index);
+					std::string str(line_p[i]);
+					_split(str,index);
 					indices.push_back(atol(index[0].c_str()));
-					index.clear();
-					index.shrink_to_fit();
+					//printf("<%s>\n",index[0].c_str());
 					//free up memory
 				}
+
+				if(indices[0]==160 and indices[1]==56) {
+					printf("found it!");
+				}
+
+
+
 				indices.push_back(indices[0]);
 				this->add_face(indices,curr_mat);
 			}
@@ -88,6 +96,7 @@ long Mesh::normals() {
 
 void Mesh::add_vertex(float x, float y, float z) {
 	struct vertex v = {x ,y ,z, 1};
+	//printf("(%f %f %f %f)\n",x,y,z,1.0f);
 	this->v_list.push_back(v);	
 }
 
@@ -97,6 +106,11 @@ long Mesh::vertices() {
 
 void Mesh::add_face(std::vector<long> face, std::string m) {
 	this->f_list.push_back(face);
+	//printf("face ");
+	//for (int i = 0; i < face.size(); i++) {
+		//printf("%i ",face[i]);
+	//}
+	//printf("\n");
 	this->mat_list.push_back(m);
 }
 
