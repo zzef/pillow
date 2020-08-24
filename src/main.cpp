@@ -35,7 +35,7 @@ struct viewport {
 
 bool draw_vertex = false;
 bool backface_culling = true;
-bool draw_wireframe = true;
+bool draw_wireframe = false;
 bool draw_lights = false;
 bool flat_shade = false;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
@@ -691,7 +691,12 @@ int main(int argc, char* args[]) {
 	}	
 
 	load_models(models);
-	while(1) {
+	SDL_Event e;
+	bool quit = false;
+	while(!quit) {	
+		while (SDL_PollEvent( &e ) != 0) {
+		
+		}
 		display->clear_buffer();
 		if((clock() - before) / CLOCKS_PER_SEC > 1) {
 			printf("fps %i\n",frames);
