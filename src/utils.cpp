@@ -51,7 +51,7 @@ void init_mat(struct mtl* m) {
 	m->kd[1]=0.5f;
 	m->kd[2]=0.5f;
 
-	m->Ns=30.0f;
+	m->Ns=40.0f;
 	m->illum=2;
 
 }

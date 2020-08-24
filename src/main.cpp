@@ -66,14 +66,14 @@ float projection_matrix[4][4] = {
 //lighting
 float light_move=0;
 const int lights = 5;
-float ambient_light[3] = {(float)(60.0f/255.0f),(float)(60.0f/255.0f),(float)(60.0f/255.0f)};
+float ambient_light[3] = {(float)(70.0f/255.0f),(float)(70.0f/255.0f),(float)(70.0f/255.0f)};
 float point_light[lights][6] = {
 
-	{(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,5,-20}, 
-	{(float)(160.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),0,5,20}, 
+	{(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,3,5}, 
+	{(float)(160.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),0,5,-5}, 
 	{(float)(100.0f/255.0f),(float)(100.0f/255.0f),(float)(100.0f/255.0f),0,10,0},
-	{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),20,5,0},
-	{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),-20,5,0},
+	{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),20,0,-10},
+	{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),-20,0,-10},
 
 }; 
 
@@ -272,7 +272,7 @@ void draw_vector(Vec3 v1, Vec3 v2) {
 
 }
 
-void render_triangle(struct vertex* clip_coords[4], int fill_r, int fill_g, int fill_b) {
+void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>* colors) {
 
 		
 	//PERSPECTIVE DIVIDE HERE
@@ -312,13 +312,12 @@ void render_triangle(struct vertex* clip_coords[4], int fill_r, int fill_g, int 
 	const int rangex = maxx-minx+1;
 	struct Color vertex_attributes[4] = {
 			
-		{fill_r,fill_g,fill_b},
-		{fill_r,fill_g,fill_b},
-		{fill_r,fill_g,fill_b},
-		{fill_r,fill_g,fill_b}
+		{colors->at(0).x,colors->at(0).y,colors->at(0).z},
+		{colors->at(1).x,colors->at(1).y,colors->at(1).z},
+		{colors->at(2).x,colors->at(2).y,colors->at(2).z},
+		{colors->at(0).x,colors->at(0).y,colors->at(0).z},
 
 	};
-
 
 	get_pairs(poly_r,vertex_attributes,min,minx);
 	for (int l = 0; l<range; l++) {
@@ -402,15 +401,16 @@ void render_mesh(Model *m, Camera *camera) {
 	float sf = 1.25f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
-	float ty = -0.4f;
+	float ty = -0.6f;
 	float tz = 0.0f;
 	float tilt = 0.0f;	
 	//m->rotate_y(1.5f);
-	//m->rotate_x(-tilt);
+	m->rotate_x(tilt);
 	camera->lookAt(tx,ty,tz);
 	m->translate(tx,ty,tz);
 	float dir = 1.5f;
-	//camera->rotate_x(dir);
+	float rr = 90;
+	//camera->rotate_x(rr);
 	camera->rotate_y(dir);
 	//camera->zoom(0.01);
 	camera->update_transform();
@@ -434,7 +434,7 @@ void render_mesh(Model *m, Camera *camera) {
 			//printf(" - %f %f\n",v2.x,v2.y);
 			float _x = (v2.x/v2.w)*WIN_WIDTH + (WIN_WIDTH/2);
 			float _y =  (-v2.y/v2.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-			float _z = v2.z;
+			float _z = v2.w;
 			//printf("%f %f draw\n",_x,_y);
 			draw_point(_x,_y,_z,20);
 		}
@@ -449,15 +449,30 @@ void render_mesh(Model *m, Camera *camera) {
 	
 		struct face f = m->faces.at(i);
 		//printf("triangle %i ",i);	
+
 		struct vertex *v00 = f.v0;
 		struct vertex *v10 = f.v1;
 		struct vertex *v20 = f.v2;
 
-		//world space
-		
+		struct vertex *n00 = f.n0;
+		struct vertex *n10 = f.n1;
+		struct vertex *n20 = f.n2;
+
+		//n00->print();
+		//n10->print();
+		//n20->print();
+
+		//world space	
+
 		struct vertex v01 = apply_transformation(v00,camera->transform);
 		struct vertex v11 = apply_transformation(v10,camera->transform);
 		struct vertex v21 = apply_transformation(v20,camera->transform);
+
+		struct vertex n01 = apply_transformation(n00,camera->transform);
+		struct vertex n11 = apply_transformation(n10,camera->transform);
+		struct vertex n21 = apply_transformation(n20,camera->transform);
+		
+		std::vector<struct vertex> normalv = {n01,n11,n21};
 
 		//view space
 
@@ -469,7 +484,8 @@ void render_mesh(Model *m, Camera *camera) {
 		Vec3 res2 = vec0.res(vec2);
 	
 		Vec3 f_norm = res1.cross(res2).normalize();	
-				
+		//printf("norm -> ");
+		//f_norm.print();	
 		Vec3 vec4 (0,0,0);
 		Vec3 diff = vec0;
 
@@ -482,70 +498,82 @@ void render_mesh(Model *m, Camera *camera) {
 
 		//lighting	
 
-		float fill_r = 255;
-		float fill_g = 255;
-		float fill_b = 255;
+		std::vector<Vec3> tvs = {vec0,vec1,vec2};
+		std::vector<struct vector3D> colors;
 	
-		float r = 0;
-		float g = 0;
-		float b = 0;
-		float shininess = mat->Ns;		
-
-		r+=(ambient_light[0]*mat->ka[0]);
-		g+=(ambient_light[1]*mat->ka[1]);
-		b+=(ambient_light[2]*mat->ka[2]);
-	
-		Vec3 mid1 = vec0.mid(vec1);
-		Vec3 mid2 = mid1.mid(vec2);
-	
-		for (int i = 0; i<all_lights.size(); i++) {
-			//diffuse light
-			Vec3 light = all_lights[i];
-			Vec3 to_light = mid2.res(light);
-			//draw_vector(light,mid2);
-			Vec3 normd = f_norm.mul(-0.1);
-			Vec3 nn = mid2.add(normd);
-			//draw_vector(mid2,nn);
-			Vec3 l = to_light.normalize();	
+		for (int j = 0; j<tvs.size(); j++) {
 		
-			Vec3 norm = f_norm;	
-			float h = std::max(l.dot(norm),0.0f);
-			if (h>0) {
-				//printf("dot product = %f\n",l.dot(norm));
-				//l.print();
-				//norm.print();
-			}
-			else {
-				//printf("\n");
-			}
-			//printf("%f dot product \n",h);
-
-			r+=(h*mat->kd[0]*point_light[i][0]);
-			g+=(h*mat->kd[1]*point_light[i][1]);
-			b+=(h*mat->kd[2]*point_light[i][2]);
-			
-			//specular light
-
-			Vec3 lr = l.mul(1);
-			float h2 = lr.dot(norm)*2;
-			Vec3 ref1 (h2*norm.x,h2*norm.y,h2*norm.z);
-			Vec3 reflected = lr.res(ref1);
-			Vec3 to_cam = mid2.res(vec4).normalize();
+			float fill_r = 255.0f;
+			float fill_g = 255.0f;
+			float fill_b = 255.0f;
 				
-			float rfdot = (float) to_cam.dot(reflected);
-		
-			float h0 = pow(std::max(rfdot,0.0f),shininess);	
-			r+=(h0*mat->ks[0]*point_light[i][0]);
-			g+=(h0*mat->ks[1]*point_light[i][1]);
-			b+=(h0*mat->ks[2]*point_light[i][2]);
+			float r = 0;
+			float g = 0;
+			float b = 0;
+			float shininess = mat->Ns;		
+
+			r+=(ambient_light[0]*mat->ka[0]);
+			g+=(ambient_light[1]*mat->ka[1]);
+			b+=(ambient_light[2]*mat->ka[2]);
 	
-		}	
+			Vec3 norm (normalv[j].x,normalv[j].y,normalv[j].z);
+			Vec3 ggnorm = norm.normalize();
+			//printf("ggnorm -> ");
+			//ggnorm.print();
 
 		
-		fill_r=std::min(r*255.0f,255.0f);
-		fill_g=std::min(g*255.0f,255.0f);
-		fill_b=std::min(b*255.0f,255.0f);
+			for (int k = 0; k<all_lights.size(); k++) {
+				//diffuse light
+				Vec3 curr_v = tvs[j];
+				Vec3 light = all_lights[k];
+				Vec3 to_light = curr_v.res(light);
+				//draw_vector(light,mid2);
+				//Vec3 normd = f_norm.mul(-0.1);
+				//Vec3 nn = curr_v.add(normd);
+				//draw_vector(mid2,nn);
+				Vec3 l = to_light.normalize();	
+		
+				float h = std::max(l.dot(ggnorm),0.0f);
+				if (h>0) {
+					//printf("dot product = %f\n",l.dot(norm));
+					//l.print();
+					//norm.print();
+				}
+				else {
+					//printf("\n");
+				}
+				//printf("%f dot product \n",h);
 
+				r+=(h*mat->kd[0]*point_light[k][0]);
+				g+=(h*mat->kd[1]*point_light[k][1]);
+				b+=(h*mat->kd[2]*point_light[k][2]);
+				
+				//specular light
+	
+				Vec3 lr = l.mul(1);
+				float h2 = lr.dot(ggnorm)*2;
+				Vec3 ref1 (h2*ggnorm.x,h2*ggnorm.y,h2*ggnorm.z);
+				Vec3 reflected = lr.res(ref1);
+				Vec3 to_cam = curr_v.res(vec4).normalize();
+					
+				float rfdot = (float) to_cam.dot(reflected);
+			
+				float h0 = pow(std::max(rfdot,0.0f),shininess);	
+				r+=(h0*mat->ks[0]*point_light[k][0]);
+				g+=(h0*mat->ks[1]*point_light[k][1]);
+				b+=(h0*mat->ks[2]*point_light[k][2]);
+			
+			}
+		
+			fill_r=std::min(r*255.0f,255.0f);
+			fill_g=std::min(g*255.0f,255.0f);
+			fill_b=std::min(b*255.0f,255.0f);
+			
+			struct vector3D col = {fill_r,fill_g,fill_b};
+			colors.push_back(col);
+
+				
+		}
 		//--------
 
 		struct vertex v02 = apply_transformation(&v01,projection_matrix);
@@ -555,10 +583,12 @@ void render_mesh(Model *m, Camera *camera) {
 	
 		//Normalized Device Coordinates	
 		
-		render_triangle(clip_coords,fill_r,fill_g,fill_b);
+		render_triangle(clip_coords,&colors);
 	}
+	//camera->rotate_x(-rr);
 	//camera->rotate_y(-dir);
 	m->translate(-tx,-ty,-tz);
+	m->rotate_x(-tilt);
 	//m->rotate_x(tilt);
 	m->scale(1/sf,1/sf,1/sf);
 }
@@ -577,6 +607,7 @@ void load_models(std::vector<std::string> paths) {
 
 		Mesh *mesh = new Mesh();
 		loaded = mesh->load(mesh_path);
+		mesh->display();
 
 		if (loaded) {
 			mesh->display();

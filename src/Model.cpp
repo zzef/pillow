@@ -54,6 +54,7 @@ void Model::apply_attr(Material *material) {
 
 void Model::apply_attr(Mesh *mesh) {
 	this->vertices = mesh->v_list;
+	this->normals = mesh->n_list;
 	this->mesh=mesh;
 	this->normalize();
 	this->store_triangles();
@@ -113,23 +114,39 @@ void Model::store_triangles() {
 		struct face *fd0 = (struct face*) malloc(sizeof(struct face));
 		if (this->mesh->f_list[i].size()>4) {
 			for (int j = 1; j<mesh->f_list[i].size()-2; j++) {
-				long v0 = mesh->f_list[i][0];
-				long v1 = mesh->f_list[i][j];
-				long v2 = mesh->f_list[i][j+1];
+				long v0 = mesh->f_list[i][0].first;
+				long v1 = mesh->f_list[i][j].first;
+				long v2 = mesh->f_list[i][j+1].first;
+				long vn0 = mesh->f_list[i][0].second;
+				long vn1 = mesh->f_list[i][j].second;
+				long vn2 = mesh->f_list[i][j+1].second;
 				fd0->v0 = &this->vertices[v0-1];
 				fd0->v1 = &this->vertices[v1-1];
-				fd0->v2 = &this->vertices[v2-1];	
+				fd0->v2 = &this->vertices[v2-1];
+				if (this->normals.size()>0) {
+					fd0->n0 = &this->normals[vn0-1];
+					fd0->n1 = &this->normals[vn1-1];
+					fd0->n2 = &this->normals[vn2-1];	
+				}
 				this->faces.push_back(*fd0);
 				this->mats.push_back(this->materials["default"]);
 			}
 		}
 		else {
-			long v0 = mesh->f_list[i][0];
-			long v1 = mesh->f_list[i][1];
-			long v2 = mesh->f_list[i][2];
+			long v0 = mesh->f_list[i][0].first;
+			long v1 = mesh->f_list[i][1].first;
+			long v2 = mesh->f_list[i][2].first;
+			long vn0 = mesh->f_list[i][0].second;
+			long vn1 = mesh->f_list[i][1].second;
+			long vn2 = mesh->f_list[i][2].second;
 			fd0->v0 = &this->vertices[v0-1];
 			fd0->v1 = &this->vertices[v1-1];
 			fd0->v2 = &this->vertices[v2-1];
+			if (this->normals.size()>0) {
+				fd0->n0 = &this->normals[vn0-1];
+				fd0->n1 = &this->normals[vn1-1];
+				fd0->n2 = &this->normals[vn2-1];	
+			}
 			this->faces.push_back(*fd0);
 			this->mats.push_back(this->materials["default"]);
 		}			
@@ -165,7 +182,7 @@ void Model::scale(float x, float y, float z) {
 	};
 	
 	this->apply_transform(scale_mat);
-	
+	//this->apply_transformn(scale_mat);
 }
 
 void Model::rotate_x(float angle) {
@@ -180,6 +197,7 @@ void Model::rotate_x(float angle) {
 		
 	};
 	this->apply_transform(rot_x);
+	this->apply_transformn(rot_x);
 
 }
 
@@ -195,6 +213,7 @@ void Model::rotate_y(float angle) {
 		
 	};
 	this->apply_transform(rot_y);
+	this->apply_transformn(rot_y);
 
 }
 
@@ -210,6 +229,7 @@ void Model::rotate_z(float angle) {
 		
 	};
 	this->apply_transform(rot_z);
+	this->apply_transformn(rot_z);
 
 }
 
@@ -224,6 +244,25 @@ void Model::translate(float x, float y, float z) {
 	
 	};
 	this->apply_transform(trans);
+	//this->apply_transformn(trans);
+
+}
+
+void Model::apply_transformn(float tm[4][4]) {
+
+	for	(long i = 0; i<this->verts(); i++) {
+	
+		float x = ( this->normals[i].x * tm[0][0] ) + ( this->normals[i].y * tm[1][0] ) + ( this->normals[i].z * tm[2][0] ) + ( this->normals[i].w * tm[3][0] );
+		float y = ( this->normals[i].x * tm[0][1] ) + ( this->normals[i].y * tm[1][1] ) + ( this->normals[i].z * tm[2][1] ) + ( this->normals[i].w * tm[3][1] );
+		float z = ( this->normals[i].x * tm[0][2] ) + ( this->normals[i].y * tm[1][2] ) + ( this->normals[i].z * tm[2][2] ) + ( this->normals[i].w * tm[3][2] );
+		float w = ( this->normals[i].x * tm[0][3] ) + ( this->normals[i].y * tm[1][3] ) + ( this->normals[i].z * tm[2][3] ) + ( this->normals[i].w * tm[3][3] );
+		
+		this->normals[i].x = x;
+		this->normals[i].y = y;
+		this->normals[i].z = z;
+		this->normals[i].w = w;
+	
+	}
 
 }
 

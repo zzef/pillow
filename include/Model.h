@@ -5,7 +5,11 @@ struct face {
 		
 	struct vertex *v0;	
 	struct vertex *v1;	
-	struct vertex *v2;	
+	struct vertex *v2;
+
+	struct vertex *n0;	
+	struct vertex *n1;	
+	struct vertex *n2;	
 
 };
 
@@ -18,6 +22,7 @@ class Model {
 		void cleanup_vertices();
 
 	public:
+		std::vector<struct vertex> normals;
 		std::vector<struct vertex> vertices;
 		std::map<std::string,struct mtl*> materials;
 		std::string name;
@@ -45,6 +50,7 @@ class Model {
 		void rotate_z(float angle);
 		void translate(float x, float y, float z);
 		void apply_transform(float tm[4][4]);
+		void apply_transformn(float tm[4][4]);
 
 
 };
