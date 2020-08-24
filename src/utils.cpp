@@ -1,10 +1,11 @@
 #include "../include/includes.h"
 #include "../include/Material.h"
 
-void _split(const std::string& str, std::vector<std::string>& vec, char delim = ' ') {
+int _split(const std::string& str, std::vector<std::string>& vec, char delim = ' ') {
 	//printf("->%s\n",str.c_str());
 	std::string curr = "";
 	std::string::size_type i = 0;
+	int no_del = 0;
 	while(1) {	
 		char chr = str[i];		
 		//printf("%c\n",chr);	
@@ -15,6 +16,7 @@ void _split(const std::string& str, std::vector<std::string>& vec, char delim = 
 			break;
 		}
 		if (chr==delim) {
+			no_del++;
 			if (curr.length()>0) {
 				//printf("sdsdsd\n");
 				//printf("adding %s\n",curr.c_str());
@@ -28,7 +30,7 @@ void _split(const std::string& str, std::vector<std::string>& vec, char delim = 
 		i++;
 	}
 	//printf("\n");
-
+	return no_del;
 }
 
 bool is_empty(std::string line) {

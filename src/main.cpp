@@ -35,7 +35,7 @@ struct viewport {
 
 bool draw_vertex = false;
 bool backface_culling = true;
-bool draw_wireframe = false;
+bool draw_wireframe = true;
 bool draw_lights = false;
 bool flat_shade = false;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
@@ -70,11 +70,11 @@ const int lights = 5;
 float ambient_light[3] = {(float)(70.0f/255.0f),(float)(70.0f/255.0f),(float)(70.0f/255.0f)};
 float point_light[lights][6] = {
 
-	{(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,3,5}, 
-	{(float)(160.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),0,5,-5}, 
-	{(float)(100.0f/255.0f),(float)(100.0f/255.0f),(float)(100.0f/255.0f),0,10,0},
-	{(float)(160.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),20,4,-5},
-	{(float)(190.0f/255.0f),(float)(190.0f/255.0f),(float)(190.0f/255.0f),-20,4,-5},
+	{(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,3,4}, 
+	{(float)(160.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),0,4,-4}, 
+	{(float)(40.0f/255.0f),(float)(40.0f/255.0f),(float)(40.0f/255.0f),0,10,0},
+	{(float)(160.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),20,3,-4},
+	{(float)(190.0f/255.0f),(float)(190.0f/255.0f),(float)(190.0f/255.0f),-20,3,-4},
 
 }; 
 
@@ -399,12 +399,13 @@ void render_mesh(Model *m, Camera *camera) {
 	//point_light[0][5]+=0.02f;
 	//point_light[1][5]+=0.02f;
 	unsigned char color[4] = {120,120,120,255};
-	float sf = 0.75f;
+	float sf = 1.0f;
 	m->scale(sf,sf,sf);
 	float tx = 0.0f;
 	float ty = 0.0f;
 	float tz = 0.0f;
 	float tilt = 0.0f;	
+	float cam_zoom = 0.9;
 	//m->rotate_y(1.5f);
 	m->rotate_x(tilt);
 	//m->rotate_y(1.5f);
@@ -413,9 +414,10 @@ void render_mesh(Model *m, Camera *camera) {
 	float dir = 1.5f;
 	float rr = 90;
 	//camera->rotate_x(rr);
+	camera->zoom(cam_zoom);
 	camera->rotate_y(dir);
-	//camera->zoom(0.01);
 	camera->update_transform();
+	camera->zoom(1/cam_zoom);
 	
 	std::vector<Vec3> all_lights;
 
@@ -668,7 +670,7 @@ int main(int argc, char* args[]) {
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
 	Camera* camera = new Camera();
-	camera->position(0,0.5,3);	
+	camera->position(0,0.1,3);	
 	camera->lookAt(0,0,0);
 	int frames = 0;
 	clock_t before = clock();

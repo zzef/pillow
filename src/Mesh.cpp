@@ -39,10 +39,10 @@ bool Mesh::load(std::string path) {
 				for (int i = 1; i<line_p.size(); i++) {
 					std::vector<std::string> index;
 					std::string str(line_p[i]);
-					_split(str,index,'/');
+					int no_del = _split(str,index,'/');
 					float ind = atol(index[0].c_str());
 					float nind = atol(index[index.size()-1].c_str());
-					if (index.size()<2) {
+					if (index.size()<2 || no_del<2) {
 						this->has_normals=false;
 						nind = 0;
 					}
