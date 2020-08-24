@@ -33,22 +33,16 @@ bool Mesh::load(std::string path) {
 				);
 			}
 			else if (line_p[0]=="f") {
-				std::vector<long> indices;
+				std::vector<std::pair<long,long>> indices;
 				for (int i = 1; i<line_p.size(); i++) {
 					std::vector<std::string> index;
 					std::string str(line_p[i]);
-					_split(str,index);
-					indices.push_back(atol(index[0].c_str()));
-					//printf("<%s>\n",index[0].c_str());
+					_split(str,index,'/');
+					indices.push_back( std::make_pair( atol(index[0].c_str()), atol(index[index.size()-1].c_str())) );
+					std::vector<std::string> face_info;
+					printf("%s <%s>\n",line_p[i].c_str(),index[0].c_str());
 					//free up memory
 				}
-
-				if(indices[0]==160 and indices[1]==56) {
-					printf("found it!");
-				}
-
-
-
 				indices.push_back(indices[0]);
 				this->add_face(indices,curr_mat);
 			}
@@ -75,6 +69,13 @@ bool Mesh::reload() {
 
 void Mesh::display() {
 	//this->print_mesh();
+	
+	for (int i = 0; i <n_list.size();i++) {
+	
+		n_list[i].print();
+		
+	}		
+
 }
 
 Mesh::~Mesh() {
@@ -86,7 +87,10 @@ int Mesh::type() {
 }
 
 void Mesh::add_normal(float x, float y, float z) {
-	struct vector3D n = {x ,y ,z};
+	struct vertex n = {x ,y ,z, 0};
+
+	printf("->adding %f %f %f %f\n",x,y,z,1.0f);
+
 	this->n_list.push_back(n);	
 }
 
@@ -104,7 +108,7 @@ long Mesh::vertices() {
 	return v_list.size();
 }
 
-void Mesh::add_face(std::vector<long> face, std::string m) {
+void Mesh::add_face(std::vector<std::pair<long,long>> face, std::string m) {
 	this->f_list.push_back(face);
 	//printf("face ");
 	//for (int i = 0; i < face.size(); i++) {
