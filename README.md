@@ -8,7 +8,7 @@ Pillow is a software rendering engine built from scratch in C++. It intentionall
 - Rasterization and color interpolation
 - Depth-buffering (Now renders solid wireframes)
 - Back-face culling
-- Flat shading using the phong reflection model
+- Gouraud shading using the phong illumination model
 
 ## How to run
 You will need linux to run. Please do the following to run the demo:
