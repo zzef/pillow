@@ -7,6 +7,10 @@ Vec3::Vec3(float x, float y, float z) {
 	this->z=z;
 }
 
+Vec3::Vec3() {
+}
+
+
 void Vec3::print() {
 	printf("(%f %f %f)\n",this->x,this->y,this->z);
 }

@@ -25,6 +25,7 @@ class Mesh: public Resource {
 		std::vector<std::string> mat_list;
 		std::string name;
 		float max = 1;		
+		bool has_normals = false;
 
 		Mesh();
 		int type();
@@ -39,6 +40,7 @@ class Mesh: public Resource {
 		long vertices();
 		void add_face(std::vector<std::pair<long,long>> face, std::string m);
 		long polygons();
+		bool _normals();
 	
 };	
 

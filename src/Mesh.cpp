@@ -38,7 +38,13 @@ bool Mesh::load(std::string path) {
 					std::vector<std::string> index;
 					std::string str(line_p[i]);
 					_split(str,index,'/');
-					indices.push_back( std::make_pair( atol(index[0].c_str()), atol(index[index.size()-1].c_str())) );
+					float ind = atol(index[0].c_str());
+					float nind = atol(index[index.size()-1].c_str());
+					if (index.size()<2) {
+						this->has_normals=false;
+						nind = 0;
+					}
+					indices.push_back( std::make_pair(ind,nind) );
 					std::vector<std::string> face_info;
 					printf("%s <%s>\n",line_p[i].c_str(),index[0].c_str());
 					//free up memory
@@ -47,6 +53,7 @@ bool Mesh::load(std::string path) {
 				this->add_face(indices,curr_mat);
 			}
 			else if (line_p[0]=="vn") {
+				this->has_normals=true;
 				this->add_normal(
 					atof(line_p[1].c_str()),
 					atof(line_p[2].c_str()),
@@ -61,6 +68,10 @@ bool Mesh::load(std::string path) {
 	}
 	return true;
 
+}
+
+bool Mesh::_normals() {
+	return this->has_normals;
 }
 
 bool Mesh::reload() {

@@ -37,6 +37,7 @@ bool draw_vertex = false;
 bool backface_culling = true;
 bool draw_wireframe = false;
 bool draw_lights = false;
+bool flat_shade = false;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {255,255,255,255};					
@@ -65,15 +66,15 @@ float projection_matrix[4][4] = {
 
 //lighting
 float light_move=0;
-const int lights = 5;
+const int lights = 3;
 float ambient_light[3] = {(float)(70.0f/255.0f),(float)(70.0f/255.0f),(float)(70.0f/255.0f)};
 float point_light[lights][6] = {
 
 	{(float)(200.0f/255.0f),(float)(200.0f/255.0f),(float)(200.0f/255.0f),0,3,5}, 
 	{(float)(160.0f/255.0f),(float)(160.0f/255.0f),(float)(160.0f/255.0f),0,5,-5}, 
 	{(float)(100.0f/255.0f),(float)(100.0f/255.0f),(float)(100.0f/255.0f),0,10,0},
-	{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),20,0,-10},
-	{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),-20,0,-10},
+	//{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),20,0,-10},
+	//{(float)(120.0f/255.0f),(float)(120.0f/255.0f),(float)(120.0f/255.0f),-20,0,-10},
 
 }; 
 
@@ -406,6 +407,7 @@ void render_mesh(Model *m, Camera *camera) {
 	float tilt = 0.0f;	
 	//m->rotate_y(1.5f);
 	m->rotate_x(tilt);
+	//m->rotate_y(1.5f);
 	camera->lookAt(tx,ty,tz);
 	m->translate(tx,ty,tz);
 	float dir = 1.5f;
@@ -444,11 +446,11 @@ void render_mesh(Model *m, Camera *camera) {
 	for (int i = 0; i<m->triangles(); i++) {
 	
 		struct mtl* mat = m->mats.at(i);
+		bool has_normals = m->has_normals();
 		//if (!(i==4 || i==5))
 		//	continue;
 	
 		struct face f = m->faces.at(i);
-		//printf("triangle %i ",i);	
 
 		struct vertex *v00 = f.v0;
 		struct vertex *v10 = f.v1;
@@ -458,6 +460,7 @@ void render_mesh(Model *m, Camera *camera) {
 		struct vertex *n10 = f.n1;
 		struct vertex *n20 = f.n2;
 
+		std::vector<struct vertex> normalv;;
 		//n00->print();
 		//n10->print();
 		//n20->print();
@@ -468,11 +471,11 @@ void render_mesh(Model *m, Camera *camera) {
 		struct vertex v11 = apply_transformation(v10,camera->transform);
 		struct vertex v21 = apply_transformation(v20,camera->transform);
 
-		struct vertex n01 = apply_transformation(n00,camera->transform);
-		struct vertex n11 = apply_transformation(n10,camera->transform);
-		struct vertex n21 = apply_transformation(n20,camera->transform);
-		
-		std::vector<struct vertex> normalv = {n01,n11,n21};
+		if (has_normals && !flat_shade) {
+			normalv.push_back(apply_transformation(n00,camera->transform));
+			normalv.push_back(apply_transformation(n10,camera->transform));
+			normalv.push_back(apply_transformation(n20,camera->transform));
+		}
 
 		//view space
 
@@ -516,7 +519,14 @@ void render_mesh(Model *m, Camera *camera) {
 			g+=(ambient_light[1]*mat->ka[1]);
 			b+=(ambient_light[2]*mat->ka[2]);
 	
-			Vec3 norm (normalv[j].x,normalv[j].y,normalv[j].z);
+			Vec3 norm;
+			if (has_normals && !flat_shade)  {
+				Vec3 new_n (normalv[j].x,normalv[j].y,normalv[j].z);
+				norm = new_n;
+			}
+			else {
+				norm = f_norm;
+			}
 			Vec3 ggnorm = norm.normalize();
 			//printf("ggnorm -> ");
 			//ggnorm.print();

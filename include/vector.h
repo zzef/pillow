@@ -19,6 +19,7 @@ class Vec3 {
 		float y;
 		float z;
 		
+		Vec3();
 		Vec3(float x, float y, float z);
 		void print();
 		Vec3 cross(Vec3 v);

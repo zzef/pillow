@@ -43,15 +43,15 @@ void init_mat(struct mtl* m) {
 	m->ka[1]=0.5f;
 	m->ka[2]=0.5f;
 
-	m->ks[0]=0.0f;
-	m->ks[1]=0.0f;
-	m->ks[2]=0.0f;
+	m->ks[0]=0.6f;
+	m->ks[1]=0.6f;
+	m->ks[2]=0.6f;
 
 	m->kd[0]=0.5f;
 	m->kd[1]=0.5f;
 	m->kd[2]=0.5f;
 
-	m->Ns=40.0f;
+	m->Ns=60.0f;
 	m->illum=2;
 
 }

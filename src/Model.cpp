@@ -58,6 +58,11 @@ void Model::apply_attr(Mesh *mesh) {
 	this->mesh=mesh;
 	this->normalize();
 	this->store_triangles();
+	this->_normals = mesh->_normals();
+}
+
+bool Model::has_normals() {
+	return this->_normals;
 }
 
 void Model::update_max() {
@@ -250,7 +255,10 @@ void Model::translate(float x, float y, float z) {
 
 void Model::apply_transformn(float tm[4][4]) {
 
-	for	(long i = 0; i<this->verts(); i++) {
+	if (!this->_normals)
+		return;
+
+	for	(long i = 0; i<this->normals.size(); i++) {
 	
 		float x = ( this->normals[i].x * tm[0][0] ) + ( this->normals[i].y * tm[1][0] ) + ( this->normals[i].z * tm[2][0] ) + ( this->normals[i].w * tm[3][0] );
 		float y = ( this->normals[i].x * tm[0][1] ) + ( this->normals[i].y * tm[1][1] ) + ( this->normals[i].z * tm[2][1] ) + ( this->normals[i].w * tm[3][1] );

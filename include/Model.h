@@ -28,7 +28,8 @@ class Model {
 		std::string name;
 		Material *material = 0;
 		Mesh *mesh = 0;	
-		float max = 1;		
+		float max = 1;
+		bool _normals;
 		Model();
 		~Model();
 
@@ -37,6 +38,7 @@ class Model {
 
 		void apply_attr(Material *material);
 		void apply_attr(Mesh *mesh);
+		bool has_normals();	
 		void update_max();
 		void init();
 		void store_triangles();
