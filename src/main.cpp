@@ -695,7 +695,8 @@ int main(int argc, char* args[]) {
 	bool quit = false;
 	while(!quit) {	
 		while (SDL_PollEvent( &e ) != 0) {
-		
+			if (e.type == SDL_QUIT)	
+				quit=true;
 		}
 		display->clear_buffer();
 		if((clock() - before) / CLOCKS_PER_SEC > 1) {
