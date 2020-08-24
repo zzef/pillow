@@ -28,7 +28,15 @@ class Model {
 		std::string name;
 		Material *material = 0;
 		Mesh *mesh = 0;	
-		float max = 1;
+
+		float max_x;
+		float max_y;
+		float max_z;
+
+		float min_x;
+		float min_y;
+		float min_z;
+
 		bool _normals;
 		Model();
 		~Model();
@@ -36,10 +44,11 @@ class Model {
 		std::vector<struct face> faces;
 		std::vector<struct mtl*> mats;
 
+		void center_model();
 		void apply_attr(Material *material);
 		void apply_attr(Mesh *mesh);
 		bool has_normals();	
-		void update_max();
+		void update_data();
 		void init();
 		void store_triangles();
 		void store_materials();

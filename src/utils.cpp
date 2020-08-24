@@ -39,9 +39,9 @@ bool is_empty(std::string line) {
 
 void init_mat(struct mtl* m) {
 
-	m->ka[0]=0.5f;
-	m->ka[1]=0.5f;
-	m->ka[2]=0.5f;
+	m->ka[0]=0.7f;
+	m->ka[1]=0.7f;
+	m->ka[2]=0.7f;
 
 	m->ks[0]=0.6f;
 	m->ks[1]=0.6f;

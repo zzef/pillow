@@ -56,26 +56,67 @@ void Model::apply_attr(Mesh *mesh) {
 	this->vertices = mesh->v_list;
 	this->normals = mesh->n_list;
 	this->mesh=mesh;
+	this->update_data();
+	this->center_model();
 	this->normalize();
 	this->store_triangles();
 	this->_normals = mesh->_normals();
+}
+
+void Model::center_model() {
+	
+	float mid_x = (this->max_x + this->min_x)/2;
+	float mid_y = (this->max_y + this->min_y)/2;
+	float mid_z = (this->max_z + this->min_z)/2;
+
+	this->max_x-=mid_x;
+	this->max_y-=mid_y;
+	this->max_z-=mid_z;
+
+	this->min_x-=mid_x;
+	this->min_y-=mid_y;
+	this->min_z-=mid_z;
+	
+	for (long i = 0; i<this->verts(); i++) {
+		this->vertices[i].x-=mid_x;
+		this->vertices[i].y-=mid_y;
+		this->vertices[i].z-=mid_z;
+	}
+
 }
 
 bool Model::has_normals() {
 	return this->_normals;
 }
 
-void Model::update_max() {
-	for (long i = 0; i<this->verts(); i++) {
-		float x = abs(this->vertices[i].x);
-		float y = abs(this->vertices[i].y);
-		float z = abs(this->vertices[i].z);
-		if (x>this->max)
-			this->max=x;
-		if (y>this->max)
-			this->max=y;
-		if (z>this->max)
-			this->max=z;
+void Model::update_data() {
+	
+	float x = this->vertices[0].x;
+	float y = this->vertices[0].y;
+	float z = this->vertices[0].z;
+	this->max_x=x;
+	this->max_y=y;
+	this->max_z=z;
+	this->min_x=x;
+	this->min_y=y;
+	this->min_z=z;
+
+	for (long i = 1; i<this->verts(); i++) {
+		x=this->vertices[i].x;
+		y=this->vertices[i].y;
+		z=this->vertices[i].z;
+		if (x>this->max_x)
+			this->max_x=x;
+		if (y>this->max_y)
+			this->max_y=y;
+		if (z>this->max_z)
+			this->max_z=z;
+		if (x<this->min_x)
+			this->min_x=x;
+		if (y<this->min_y)
+			this->min_y=y;
+		if (z<this->min_z)
+			this->min_z=z;
 
 	}
 }
@@ -159,11 +200,15 @@ void Model::store_triangles() {
 }
 
 void Model::normalize() {
-	this->update_max();
+	
+	float max1 = std::max(std::max(abs(max_x),abs(max_y)),abs(max_z));
+	float max2 = std::max(std::max(abs(min_x),abs(min_y)),abs(min_z));
+	float max = std::max(max1,max2);	
+
 	for (long i = 0; i<this->verts(); i++) {
-		this->vertices[i].x/=this->max;
-		this->vertices[i].y/=this->max;
-		this->vertices[i].z/=this->max;
+		this->vertices[i].x/=max;
+		this->vertices[i].y/=max;
+		this->vertices[i].z/=max;
 	}
 }
 

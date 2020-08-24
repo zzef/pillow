@@ -18,12 +18,14 @@ bool Mesh::load(std::string path) {
 		std::string curr_mat;
 		while (std::getline(mesh,line)) {
 			std::vector <std::string>line_p;
+			printf("%s\n",line.c_str());
 			if (is_empty(line))
 				continue;
 			_split(line,line_p);
 			if (line_p[0]=="usemtl") {
 				//printf("material %s\n", line_p[1]);
-				curr_mat = line_p[1];	
+				if (line_p.size()>1)
+					curr_mat = line_p[1];	
 			}
 			else if (line_p[0]=="v") {
 				this->add_vertex(
@@ -127,6 +129,7 @@ void Mesh::add_face(std::vector<std::pair<long,long>> face, std::string m) {
 	//}
 	//printf("\n");
 	this->mat_list.push_back(m);
+	printf("size f %d\n",this->mat_list.size());
 }
 
 long Mesh::polygons() {
