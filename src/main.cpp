@@ -45,6 +45,10 @@ float tilt_y = 0;
 float lerpty = 0;
 float lerptx = 0;
 
+
+char colors[3] = {120,120,120};
+Camera* camera;
+int fps = 0;
 bool draw_vertex = false;
 bool backface_culling = true;
 bool draw_wireframe = false;
@@ -66,6 +70,8 @@ const int fov = 90;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
 struct edge_pixel empty = {-1,NULL,0};
+std::string g_mesh_path;
+std::string g_mtl_path;
 float projection_matrix[4][4] = {
 	
 	{ S/aspect_ratio, 0, 0, 0 },
@@ -632,16 +638,16 @@ void load_models(std::vector<std::string> paths) {
 		std::string mesh_path = paths[i]+".obj";
 		std::string mtl_path = paths[i]+".mtl";
 		
-		printf(">>%s\n",mesh_path.c_str());
+		//printf(">>%s\n",mesh_path.c_str());
 
 		bool loaded;
 
 		Mesh *mesh = new Mesh();
 		loaded = mesh->load(mesh_path);
-		mesh->display();
 
 		if (loaded) {
-			mesh->display();
+			//mesh->display();
+			g_mesh_path = mesh_path;
 		}
 		else {
 			std::cout << "Could not load: " << mesh_path << std::endl;
@@ -651,13 +657,13 @@ void load_models(std::vector<std::string> paths) {
 		loaded = material->load(mtl_path);	
 
 		if (loaded) {
-			material->display();
+			//material->display();
+			g_mtl_path = mtl_path;
 		}
 		else {
 			std::cout << "Could not load: " << mtl_path << std::endl;
 		}
 
-		material->display();	
 		
 		Model *model = new Model();
 		model->apply_attr(mesh);
@@ -665,16 +671,21 @@ void load_models(std::vector<std::string> paths) {
 		
 		models.push_back(model);	
 	
-		printf("model size %d\n",models.size());
+		//printf("model size %d\n",models.size());
 
 	}
 	
 }
 
-void render(Camera *camera) {
+void render() {
+
 	for(int i = 0; i<models.size(); i++) {
 		render_mesh(models[i],camera);
 	}	
+	display->draw_text("FPS "+std::to_string(fps), 10, 10, colors, 19);	
+	//display->draw_text("mesh: "+g_mesh_path,10,25,colors,19);
+	//display->draw_text("mtl: "+g_mtl_path,10,35,colors,19);
+	display->show();
 }
 
 void update() {
@@ -704,13 +715,12 @@ void handle_event(SDL_Event e) {
 }
 
 int main(int argc, char* args[]) {
-
 	
 	display = new Display(WIN_WIDTH,WIN_HEIGHT,WINDOW_TITLE);
 	display->init();
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
-	Camera* camera = new Camera();
+	camera = new Camera();
 	camera->position(0,0.1,3);	
 	camera->lookAt(0,0,0);
 	int frames = 0;
@@ -745,12 +755,12 @@ int main(int argc, char* args[]) {
 		}
 		display->clear_buffer();
 		if((clock() - before) / CLOCKS_PER_SEC > 1) {
-			printf("fps %i\n",frames);
 			before = clock();
+			fps=frames;
 			frames=0;
 		}
 		update();
-		render(camera);
+		render();
 		display->flip_buffer();
 		frames++;
 	}

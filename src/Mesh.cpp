@@ -18,7 +18,7 @@ bool Mesh::load(std::string path) {
 		std::string curr_mat;
 		while (std::getline(mesh,line)) {
 			std::vector <std::string>line_p;
-			printf("%s\n",line.c_str());
+			//printf("%s\n",line.c_str());
 			if (is_empty(line))
 				continue;
 			_split(line,line_p);
@@ -48,7 +48,7 @@ bool Mesh::load(std::string path) {
 					}
 					indices.push_back( std::make_pair(ind,nind) );
 					std::vector<std::string> face_info;
-					printf("%s <%s>\n",line_p[i].c_str(),index[0].c_str());
+					//printf("%s <%s>\n",line_p[i].c_str(),index[0].c_str());
 					//free up memory
 				}
 				indices.push_back(indices[0]);
@@ -102,7 +102,7 @@ int Mesh::type() {
 void Mesh::add_normal(float x, float y, float z) {
 	struct vertex n = {x ,y ,z, 0};
 
-	printf("->adding %f %f %f %f\n",x,y,z,1.0f);
+	//printf("->adding %f %f %f %f\n",x,y,z,1.0f);
 
 	this->n_list.push_back(n);	
 }
@@ -129,7 +129,7 @@ void Mesh::add_face(std::vector<std::pair<long,long>> face, std::string m) {
 	//}
 	//printf("\n");
 	this->mat_list.push_back(m);
-	printf("size f %d\n",this->mat_list.size());
+	//printf("size f %d\n",this->mat_list.size());
 }
 
 long Mesh::polygons() {

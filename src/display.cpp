@@ -1,6 +1,8 @@
 #include "SDL2/SDL.h"
+#include "SDL2/SDL_ttf.h"
 #include "../include/includes.h"
 #include "../include/display.h"
+#include <queue>
 
 Display::Display(int width, int height, std::string title) {
 	this->width=std::max(MIN_W,std::min(width,MAX_W));
@@ -32,6 +34,17 @@ void Display::clear_buffer() {
 
 void Display::init() {
 	//Start SDL
+	
+	if (TTF_Init()==-1) 
+		printf("TTF_Init: %s\n",TTF_GetError());
+
+	this->font = TTF_OpenFont("/home/zef/pillow/fonts/BalooTamma2-Medium.ttf",FONT_H);
+	if (!font)
+		printf("TTF_OpenFont: %s\n",TTF_GetError());
+	else {
+		printf("got it!\n");
+	}
+	
 	SDL_Init(SDL_INIT_EVERYTHING);
 
 	//We start by creating a window
@@ -49,8 +62,35 @@ void Display::init() {
 	this->Frame = SDL_CreateTexture(this->renderer, SDL_PIXELFORMAT_RGBA8888,
 		SDL_TEXTUREACCESS_STREAMING, this->width, this->height
 	);
-
 }	
+
+void Display::show() {
+	SDL_RenderPresent(this->renderer);
+	
+}
+
+void Display::draw_text(std::string&& str, int x, int y, char* color, int size) {
+
+	SDL_Surface* surfaceMessage;
+	SDL_Texture* Message;
+	const char * string = str.c_str();
+	int w,h;
+	//printf("%s\n %i %i %i\n",string,txt.color[0],txt.color[1],txt.color[2]);
+	TTF_SizeText(this->font,string,&w,&h);
+	SDL_Color col = {color[0],color[1],color[2]};
+	surfaceMessage = TTF_RenderText_Solid(this->font,string,col);
+	Message = SDL_CreateTextureFromSurface(this->renderer,surfaceMessage);
+	SDL_Rect Message_rect;
+	Message_rect.x = x;
+	Message_rect.y = y;
+	Message_rect.w = w*((int) size/ (float) FONT_H);
+	Message_rect.h = h*((int) size/ (float) FONT_H);
+	SDL_RenderCopy(this->renderer,Message,NULL,&Message_rect);	
+	SDL_FreeSurface(surfaceMessage);
+	SDL_DestroyTexture(Message);
+
+}
+
 
 void Display::flip_buffer() {
 	unsigned char* bytes = nullptr;
@@ -63,9 +103,8 @@ void Display::flip_buffer() {
 		}
 	}
 	SDL_UnlockTexture(this->Frame);
-	SDL_RenderCopy(renderer,Frame,NULL,NULL);		
+	SDL_RenderCopy(this->renderer,Frame,NULL,NULL);
 	//show
-	SDL_RenderPresent(this->renderer);
 }
 
 void Display::set_pixel(int x, int y, unsigned char* color,float depth) {
@@ -96,5 +135,6 @@ void Display::set_pixel(int x, int y, unsigned char* color,float depth) {
 void Display::destroy() {
 	SDL_DestroyWindow(this->window);
 	SDL_Quit();
+	TTF_Quit();
 }
 

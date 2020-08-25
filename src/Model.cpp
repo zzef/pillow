@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 Model::Model() {
-	struct mtl* mat = (struct mtl*) malloc(sizeof(struct mtl));
+	mtl* mat = new mtl();
 	init_mat(mat);
 	this->materials["default"] = mat;
 }
@@ -157,7 +157,7 @@ void Model::store_triangles() {
 	//assumes that all triangles are concave.	
 	this->faces.clear();
 	for (int i = 0; i<this->mesh->polygons(); i++) {
-		struct face *fd0 = (struct face*) malloc(sizeof(struct face));
+		face *fd0 = new face();
 		if (this->mesh->f_list[i].size()>4) {
 			for (int j = 1; j<mesh->f_list[i].size()-2; j++) {
 				long v0 = mesh->f_list[i][0].first;

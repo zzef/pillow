@@ -25,7 +25,7 @@ struct mtl {
 class Material: public Resource {
 
 	public:
-		std::map<std::string, struct mtl*> mat_list;
+		std::map<std::string, mtl*> mat_list;
 		Material();	
 		bool load(std::string path);
 		bool reload();

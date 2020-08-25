@@ -1,5 +1,5 @@
 CC = g++
-LIBS = -lSDL2
+LIBS = -lSDL2 -lSDL2_ttf
 IDIR = include
 BINC = $(IDIR)/includes.h
 SDIR = src

@@ -8,7 +8,7 @@ int Material::type() {
 }
 
 Material::Material() {
-	struct mtl* mat = (struct mtl*) malloc(sizeof(struct mtl));
+	mtl* mat = new mtl();
 	init_mat(mat);
 	this->mat_list["default"] = mat;
 }
@@ -34,7 +34,7 @@ bool Material::load(std::string path) {
 			
 			if (line_p[0] == "newmtl") {
 				material = line_p[1];
-				struct mtl* mat = (struct mtl*) malloc(sizeof(struct mtl));
+				mtl* mat = new mtl();
 				init_mat(mat);
 				this->mat_list[material]=mat;
 			}
@@ -77,7 +77,7 @@ bool Material::reload() {
 
 void Material::display() {
 
-	std::map<std::string, struct mtl*>::iterator it = this->mat_list.begin();
+	std::map<std::string, mtl*>::iterator it = this->mat_list.begin();
 	
 	while(it != this->mat_list.end()) {
 		std::cout << it->first << std::endl;
