@@ -41,17 +41,17 @@ bool is_empty(std::string line) {
 
 void init_mat(struct mtl* m) {
 
-	m->ka[0]=0.7f;
-	m->ka[1]=0.7f;
-	m->ka[2]=0.7f;
+	m->ka[0]=0.55f;
+	m->ka[1]=0.55f;
+	m->ka[2]=0.55f;
 
-	m->ks[0]=0.6f;
-	m->ks[1]=0.6f;
-	m->ks[2]=0.6f;
+	m->ks[0]=0.0f;
+	m->ks[1]=0.0f;
+	m->ks[2]=0.0f;
 
-	m->kd[0]=0.5f;
-	m->kd[1]=0.5f;
-	m->kd[2]=0.5f;
+	m->kd[0]=0.45f;
+	m->kd[1]=0.45f;
+	m->kd[2]=0.45f;
 
 	m->Ns=60.0f;
 	m->illum=2;

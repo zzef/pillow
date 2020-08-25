@@ -33,6 +33,18 @@ struct viewport {
 	float h;
 };
 
+int curr_mx = 0;
+int curr_my = 0;
+int prev_mx = 0;
+int prev_my = 0;
+
+float cam_zoom = 0.9;
+float cam_lerp = 0;
+float tilt_x = 0;
+float tilt_y = 0;
+float lerpty = 0;
+float lerptx = 0;
+
 bool draw_vertex = false;
 bool backface_culling = true;
 bool draw_wireframe = false;
@@ -404,20 +416,27 @@ void render_mesh(Model *m, Camera *camera) {
 	float tx = 0.0f;
 	float ty = 0.0f;
 	float tz = 0.0f;
-	float tilt = 0.0f;	
-	float cam_zoom = 0.9;
-	//m->rotate_y(1.5f);
-	m->rotate_x(tilt);
+	float tilt = 0.0f;
+
+	lerpty += (tilt_y - lerpty) * 0.30;
+	lerptx += (tilt_x - lerptx) * 0.30;
+	
+	m->rotate_y(lerpty);
+	m->rotate_x(lerptx);
 	//m->rotate_y(1.5f);
 	camera->lookAt(tx,ty,tz);
 	m->translate(tx,ty,tz);
 	float dir = 1.5f;
 	float rr = 90;
 	//camera->rotate_x(rr);
-	camera->zoom(cam_zoom);
-	camera->rotate_y(dir);
+	cam_lerp += (cam_zoom - cam_lerp) * 0.25;
+	camera->zoom(cam_lerp);
+	//camera->rotate_y(tilt_y);
+	//camera->rotate_x(tilt_x);
 	camera->update_transform();
-	camera->zoom(1/cam_zoom);
+	//camera->rotate_x(-tilt_x);
+	//camera->rotate_y(-tilt_y);
+	camera->zoom(1/cam_lerp);
 	
 	std::vector<Vec3> all_lights;
 
@@ -600,8 +619,8 @@ void render_mesh(Model *m, Camera *camera) {
 	//camera->rotate_x(-rr);
 	//camera->rotate_y(-dir);
 	m->translate(-tx,-ty,-tz);
-	m->rotate_x(-tilt);
-	//m->rotate_x(tilt);
+	m->rotate_x(-lerptx);
+	m->rotate_y(-lerpty);
 	m->scale(1/sf,1/sf,1/sf);
 }
 
@@ -662,6 +681,28 @@ void update() {
 	//TODO
 }
 
+void handle_mouse_motion(SDL_MouseMotionEvent e) {
+	
+	if (e.state) {
+		tilt_y-=(e.xrel*0.25);
+		tilt_x-=(e.yrel*0.25);
+	}		
+
+}
+
+void handle_event(SDL_Event e) {	
+	switch(e.type){
+		case SDL_MOUSEMOTION : {
+			handle_mouse_motion(e.motion);
+			break;
+		}
+		case SDL_MOUSEWHEEL : {
+			cam_zoom += e.wheel.y*0.05f;
+		}
+	}
+
+}
+
 int main(int argc, char* args[]) {
 
 	
@@ -694,9 +735,13 @@ int main(int argc, char* args[]) {
 	SDL_Event e;
 	bool quit = false;
 	while(!quit) {	
-		while (SDL_PollEvent( &e ) != 0) {
-			if (e.type == SDL_QUIT)	
+		while (SDL_PollEvent( &e )) {
+
+			if (e.type == SDL_QUIT)
 				quit=true;
+			else
+				handle_event( e );
+
 		}
 		display->clear_buffer();
 		if((clock() - before) / CLOCKS_PER_SEC > 1) {
