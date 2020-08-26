@@ -38,7 +38,7 @@ void Display::init() {
 	if (TTF_Init()==-1) 
 		printf("TTF_Init: %s\n",TTF_GetError());
 
-	this->font = TTF_OpenFont("/home/zef/pillow/fonts/BalooTamma2-Medium.ttf",FONT_H);
+	this->font = TTF_OpenFont("/home/zef/pillow/fonts/open-sans-regular.ttf",FONT_H);
 	if (!font)
 		printf("TTF_OpenFont: %s\n",TTF_GetError());
 	else {
