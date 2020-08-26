@@ -901,6 +901,7 @@ void handle_keys(SDL_Keycode sym) {
 		}
 		case SDLK_z : {
 			display->toggle_depth_buffer();
+			depth_buffering=!depth_buffering;
 			break;
 		}
 		case SDLK_l : {
