@@ -45,15 +45,22 @@ float tilt_y = 0;
 float lerpty = 0;
 float lerptx = 0;
 
-
-char colors[3] = {120,120,120};
-Camera* camera;
-int fps = 0;
+// Toggles
+bool no_rasterize = false;
 bool draw_vertex = false;
 bool backface_culling = true;
 bool draw_wireframe = false;
 bool draw_lights = false;
-bool flat_shade = false;
+bool ambient = true;
+bool diffuse = true;
+bool specular = true;
+bool smooth_shading = true;
+
+char colors[3] = {120,120,120};
+Camera* camera;
+int fps = 0;
+
+
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {255,255,255,255};					
@@ -329,18 +336,20 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		//RASTER SPACE
 	const int range = max-min+1;	
 	const int rangex = maxx-minx+1;
-	struct Color vertex_attributes[4] = {
-			
-		{colors->at(0).x,colors->at(0).y,colors->at(0).z},
-		{colors->at(1).x,colors->at(1).y,colors->at(1).z},
-		{colors->at(2).x,colors->at(2).y,colors->at(2).z},
-		{colors->at(0).x,colors->at(0).y,colors->at(0).z},
-
-	};
+	struct Color vertex_attributes[4];
+	
+	if (!no_rasterize) {
+		vertex_attributes[0]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
+		vertex_attributes[1]={colors->at(1).x,colors->at(1).y,colors->at(1).z};
+		vertex_attributes[2]={colors->at(2).x,colors->at(2).y,colors->at(2).z};
+		vertex_attributes[3]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
+	}
 
 	get_pairs(poly_r,vertex_attributes,min,minx);
 	for (int l = 0; l<range; l++) {
+
 		int yval = l+min;
+
 		int smallest = 100000000;
 		int largest = -100000000;
 		int is = 0;
@@ -362,6 +371,16 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		int first = smallest;
 		int last = largest;
 		
+		if (no_rasterize) {	
+			for (int n=first; n<last+1; n++) {
+				if (edge_pixels[l][n-minx].x != -1) {
+					display->set_pixel(n,yval,wfc,-1);
+					edge_pixels[l][n-minx]=empty;	
+				}
+			}
+			continue;
+		}
+
 		//printf("first last - > (%d, %d)\n",first,last);	
 		
 		float startz = edge_pixels[l][is].depth;			
@@ -381,7 +400,9 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		float delta_b = endb-startb;
 	
 		//printf("first last - > (%d, %d)\n",first,last);
-		//printf("newline\n");	
+		//printf("newline\n");
+	
+
 		for (int n=first; n<last+1; n++) {
 			float prop = (float) (n-first)/(last-first+1);			
 			float z = startz+ (prop*delta_z);
@@ -412,222 +433,240 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		}
 	}
 }
-void render_mesh(Model *m, Camera *camera) {
+void _render_mesh(Model *m) {
 
-	//point_light[0][5]+=0.02f;
-	//point_light[1][5]+=0.02f;
-	unsigned char color[4] = {120,120,120,255};
-	float sf = 1.0f;
-	m->scale(sf,sf,sf);
-	float tx = 0.0f;
-	float ty = 0.0f;
-	float tz = 0.0f;
-	float tilt = 0.0f;
+	struct vertex *v00;
+	struct vertex *v10;
+	struct vertex *v20;
 
-	lerpty += (tilt_y - lerpty) * 0.30;
-	lerptx += (tilt_x - lerptx) * 0.30;
-	
-	m->rotate_y(lerpty);
-	m->rotate_x(lerptx);
-	//m->rotate_y(1.5f);
-	camera->lookAt(tx,ty,tz);
-	m->translate(tx,ty,tz);
-	float dir = 1.5f;
-	float rr = 90;
-	//camera->rotate_x(rr);
-	cam_lerp += (cam_zoom - cam_lerp) * 0.25;
-	camera->zoom(cam_lerp);
-	//camera->rotate_y(tilt_y);
-	//camera->rotate_x(tilt_x);
-	camera->update_transform();
-	//camera->rotate_x(-tilt_x);
-	//camera->rotate_y(-tilt_y);
-	camera->zoom(1/cam_lerp);
-	
-	std::vector<Vec3> all_lights;
+	struct vertex v01;
+	struct vertex v11;
+	struct vertex v21;
 
-	for (int i = 0; i<lights; i++) {	
-	
-		float lx = point_light[i][3];
-		float ly = point_light[i][4];
-		float lz = point_light[i][5];
-		float lw = 1;
-
-		struct vertex v0 = {lx,ly,lz,lw};
-		struct vertex v1 = apply_transformation(&v0,camera->transform);		
-		Vec3 light (v1.x,v1.y,v1.z);
-		all_lights.push_back(light);
-
-		struct vertex v2 = apply_transformation(&v1,projection_matrix);
-		if (draw_lights) {
-			//printf(" - %f %f\n",v2.x,v2.y);
-			float _x = (v2.x/v2.w)*WIN_WIDTH + (WIN_WIDTH/2);
-			float _y =  (-v2.y/v2.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-			float _z = v2.w;
-			//printf("%f %f draw\n",_x,_y);
-			draw_point(_x,_y,_z,20);
-		}
-
-	}
-
-	for (int i = 0; i<m->triangles(); i++) {
-	
-		struct mtl* mat = m->mats.at(i);
-		bool has_normals = m->has_normals();
-		//if (!(i==4 || i==5))
-		//	continue;
-	
-		struct face f = m->faces.at(i);
-
-		struct vertex *v00 = f.v0;
-		struct vertex *v10 = f.v1;
-		struct vertex *v20 = f.v2;
-
-		struct vertex *n00 = f.n0;
-		struct vertex *n10 = f.n1;
-		struct vertex *n20 = f.n2;
-
-		std::vector<struct vertex> normalv;;
-		//n00->print();
-		//n10->print();
-		//n20->print();
-
-		//world space	
-
-		struct vertex v01 = apply_transformation(v00,camera->transform);
-		struct vertex v11 = apply_transformation(v10,camera->transform);
-		struct vertex v21 = apply_transformation(v20,camera->transform);
-
-		if (has_normals && !flat_shade) {
-			normalv.push_back(apply_transformation(n00,camera->transform));
-			normalv.push_back(apply_transformation(n10,camera->transform));
-			normalv.push_back(apply_transformation(n20,camera->transform));
-		}
-
-		//view space
-
-		Vec3 vec0 (v01.x,v01.y,v01.z);
-		Vec3 vec1 (v11.x,v11.y,v11.z);
-		Vec3 vec2 (v21.x,v21.y,v21.z);
-	
-		Vec3 res1 = vec0.res(vec1);
-		Vec3 res2 = vec0.res(vec2);
-	
-		Vec3 f_norm = res1.cross(res2).normalize();	
-		//printf("norm -> ");
-		//f_norm.print();	
-		Vec3 vec4 (0,0,0);
-		Vec3 diff = vec0;
-
-		//backface culling
-
-		if (backface_culling) {
-			if (f_norm.dot(diff)>0) 
-				continue;
-		}
-
-		//lighting	
-
-		std::vector<Vec3> tvs = {vec0,vec1,vec2};
-		std::vector<struct vector3D> colors;
-	
-		for (int j = 0; j<tvs.size(); j++) {
-		
-			float fill_r = 255.0f;
-			float fill_g = 255.0f;
-			float fill_b = 255.0f;
-				
-			float r = 0;
-			float g = 0;
-			float b = 0;
-			float shininess = mat->Ns;		
-
-			r+=(ambient_light[0]*mat->ka[0]);
-			g+=(ambient_light[1]*mat->ka[1]);
-			b+=(ambient_light[2]*mat->ka[2]);
-	
-			Vec3 norm;
-			if (has_normals && !flat_shade)  {
-				Vec3 new_n (normalv[j].x,normalv[j].y,normalv[j].z);
-				norm = new_n;
-			}
-			else {
-				norm = f_norm;
-			}
-			Vec3 ggnorm = norm.normalize();
-			//printf("ggnorm -> ");
-			//ggnorm.print();
-
-		
-			for (int k = 0; k<all_lights.size(); k++) {
-				//diffuse light
-				Vec3 curr_v = tvs[j];
-				Vec3 light = all_lights[k];
-				Vec3 to_light = curr_v.res(light);
-				//draw_vector(light,mid2);
-				//Vec3 normd = f_norm.mul(-0.1);
-				//Vec3 nn = curr_v.add(normd);
-				//draw_vector(mid2,nn);
-				Vec3 l = to_light.normalize();	
-		
-				float h = std::max(l.dot(ggnorm),0.0f);
-				if (h>0) {
-					//printf("dot product = %f\n",l.dot(norm));
-					//l.print();
-					//norm.print();
-				}
-				else {
-					//printf("\n");
-				}
-				//printf("%f dot product \n",h);
-
-				r+=(h*mat->kd[0]*point_light[k][0]);
-				g+=(h*mat->kd[1]*point_light[k][1]);
-				b+=(h*mat->kd[2]*point_light[k][2]);
-				
-				//specular light
-	
-				Vec3 lr = l.mul(1);
-				float h2 = lr.dot(ggnorm)*2;
-				Vec3 ref1 (h2*ggnorm.x,h2*ggnorm.y,h2*ggnorm.z);
-				Vec3 reflected = lr.res(ref1);
-				Vec3 to_cam = curr_v.res(vec4).normalize();
-					
-				float rfdot = (float) to_cam.dot(reflected);
-			
-				float h0 = pow(std::max(rfdot,0.0f),shininess);	
-				r+=(h0*mat->ks[0]*point_light[k][0]);
-				g+=(h0*mat->ks[1]*point_light[k][1]);
-				b+=(h0*mat->ks[2]*point_light[k][2]);
-			
-			}
-		
-			fill_r=std::min(r*255.0f,255.0f);
-			fill_g=std::min(g*255.0f,255.0f);
-			fill_b=std::min(b*255.0f,255.0f);
-			
-			struct vector3D col = {fill_r,fill_g,fill_b};
-			colors.push_back(col);
-
-				
-		}
-		//--------
-
-		struct vertex v02 = apply_transformation(&v01,projection_matrix);
-		struct vertex v12 = apply_transformation(&v11,projection_matrix);
-		struct vertex v22 = apply_transformation(&v21,projection_matrix);
-		struct vertex* clip_coords[4] = {&v02,&v12,&v22,&v02};
+	struct vertex v02;
+	struct vertex v12;
+	struct vertex v22;
 	
 		//Normalized Device Coordinates	
+	
+	if (no_rasterize) {
+		for (int i = 0; i<m->triangles(); i++) {
+			
+			std::vector<struct vector3D> colors;
+			struct face f = m->faces.at(i);
+
+			v00 = f.v0;
+			v10 = f.v1;
+			v20 = f.v2;
+	
+			v01 = apply_transformation(v00,camera->transform);
+			v11 = apply_transformation(v10,camera->transform);
+			v21 = apply_transformation(v20,camera->transform);
+	
+			v02 = apply_transformation(&v01,projection_matrix);
+			v12 = apply_transformation(&v11,projection_matrix);
+			v22 = apply_transformation(&v21,projection_matrix);
+			struct vertex* clip_coords[4] = {&v02,&v12,&v22,&v02};
+	
+			//Normalized Device Coordinates	
+
+			Vec3 vec0 (v01.x,v01.y,v01.z);
+			Vec3 vec1 (v11.x,v11.y,v11.z);
+			Vec3 vec2 (v21.x,v21.y,v21.z);
 		
-		render_triangle(clip_coords,&colors);
+			Vec3 res1 = vec0.res(vec1);
+			Vec3 res2 = vec0.res(vec2);
+	
+			Vec3 f_norm = res1.cross(res2).normalize();	
+			//printf("norm -> ");
+			//f_norm.print();	
+			Vec3 vec4 (0,0,0);
+			Vec3 diff = vec0;
+
+			//backface culling
+
+			if (backface_culling) {
+				if (f_norm.dot(diff)>0) 
+				continue;
+			}
+	
+			render_triangle(clip_coords,&colors);
+		}
 	}
-	//camera->rotate_x(-rr);
-	//camera->rotate_y(-dir);
-	m->translate(-tx,-ty,-tz);
-	m->rotate_x(-lerptx);
-	m->rotate_y(-lerpty);
-	m->scale(1/sf,1/sf,1/sf);
+	else {
+		std::vector<Vec3> all_lights;
+
+		for (int i = 0; i<lights; i++) {	
+	
+			float lx = point_light[i][3];
+			float ly = point_light[i][4];
+			float lz = point_light[i][5];
+			float lw = 1;
+
+			struct vertex v0 = {lx,ly,lz,lw};
+			struct vertex v1 = apply_transformation(&v0,camera->transform);		
+			Vec3 light (v1.x,v1.y,v1.z);
+			all_lights.push_back(light);
+	
+			struct vertex v2 = apply_transformation(&v1,projection_matrix);
+			if (draw_lights) {
+				//printf(" - %f %f\n",v2.x,v2.y);
+				float _x = (v2.x/v2.w)*WIN_WIDTH + (WIN_WIDTH/2);
+				float _y =  (-v2.y/v2.w)*WIN_HEIGHT + (WIN_HEIGHT/2);
+				float _z = v2.w;
+				//printf("%f %f draw\n",_x,_y);
+				draw_point(_x,_y,_z,20);
+			}
+	
+		}
+	
+		for (int i = 0; i<m->triangles(); i++) {
+		
+			std::vector<struct vector3D> colors;
+			struct mtl* mat = m->mats.at(i);
+			bool has_normals = m->has_normals();
+			//if (!(i==4 || i==5))
+			//	continue;
+		
+			struct face f = m->faces.at(i);
+	
+			struct vertex *v00 = f.v0;
+			struct vertex *v10 = f.v1;
+			struct vertex *v20 = f.v2;
+	
+			struct vertex *n00 = f.n0;
+			struct vertex *n10 = f.n1;
+			struct vertex *n20 = f.n2;
+	
+			std::vector<struct vertex> normalv;;
+			//n00->print();
+			//n10->print();
+			//n20->print();
+	
+			//world space	
+	
+			v01 = apply_transformation(v00,camera->transform);
+			v11 = apply_transformation(v10,camera->transform);
+			v21 = apply_transformation(v20,camera->transform);
+	
+			if (has_normals && smooth_shading) {
+				normalv.push_back(apply_transformation(n00,camera->transform));
+				normalv.push_back(apply_transformation(n10,camera->transform));
+				normalv.push_back(apply_transformation(n20,camera->transform));
+			}
+	
+			//view space
+	
+			Vec3 vec0 (v01.x,v01.y,v01.z);
+			Vec3 vec1 (v11.x,v11.y,v11.z);
+			Vec3 vec2 (v21.x,v21.y,v21.z);
+		
+			Vec3 res1 = vec0.res(vec1);
+			Vec3 res2 = vec0.res(vec2);
+		
+			Vec3 f_norm = res1.cross(res2).normalize();	
+			//printf("norm -> ");
+			//f_norm.print();	
+			Vec3 vec4 (0,0,0);
+			Vec3 diff = vec0;
+	
+			//backface culling
+	
+			if (backface_culling) {
+				if (f_norm.dot(diff)>0) 
+					continue;
+			}
+	
+			//lighting	
+	
+			std::vector<Vec3> tvs = {vec0,vec1,vec2};
+		
+			for (int j = 0; j<tvs.size(); j++) {
+			
+				float fill_r = 255.0f;
+				float fill_g = 255.0f;
+				float fill_b = 255.0f;
+					
+				float r = 0;
+				float g = 0;
+				float b = 0;
+				float shininess = mat->Ns;		
+
+				if (ambient){
+
+					r+=(ambient_light[0]*mat->ka[0]);
+					g+=(ambient_light[1]*mat->ka[1]);
+					b+=(ambient_light[2]*mat->ka[2]);
+				}
+
+				Vec3 norm;
+				if (has_normals && smooth_shading)  {
+					Vec3 new_n (normalv[j].x,normalv[j].y,normalv[j].z);
+					norm = new_n;
+				}
+				else {
+					norm = f_norm;
+				}
+				Vec3 ggnorm = norm.normalize();
+				//printf("ggnorm -> ");
+				//ggnorm.print();
+	
+			
+				for (int k = 0; k<all_lights.size(); k++) {
+					//diffuse light
+					
+					Vec3 curr_v = tvs[j];
+					Vec3 light = all_lights[k];
+					Vec3 to_light = curr_v.res(light);
+					Vec3 l = to_light.normalize();	
+	
+					if (diffuse) {
+					
+						float h = std::max(l.dot(ggnorm),0.0f);
+						r+=(h*mat->kd[0]*point_light[k][0]);
+						g+=(h*mat->kd[1]*point_light[k][1]);
+						b+=(h*mat->kd[2]*point_light[k][2]);
+					}
+					
+					//specular light
+		
+					if (specular) {
+						Vec3 lr = l.mul(1);
+						float h2 = lr.dot(ggnorm)*2;
+						Vec3 ref1 (h2*ggnorm.x,h2*ggnorm.y,h2*ggnorm.z);
+						Vec3 reflected = lr.res(ref1);
+						Vec3 to_cam = curr_v.res(vec4).normalize();
+							
+						float rfdot = (float) to_cam.dot(reflected);
+					
+						float h0 = pow(std::max(rfdot,0.0f),shininess);	
+						r+=(h0*mat->ks[0]*point_light[k][0]);
+						g+=(h0*mat->ks[1]*point_light[k][1]);
+						b+=(h0*mat->ks[2]*point_light[k][2]);
+					}
+				}
+			
+				fill_r=std::min(r*255.0f,255.0f);
+				fill_g=std::min(g*255.0f,255.0f);
+				fill_b=std::min(b*255.0f,255.0f);
+				
+				struct vector3D col = {fill_r,fill_g,fill_b};
+				colors.push_back(col);
+	
+					
+			}
+			//--------
+	
+			v02 = apply_transformation(&v01,projection_matrix);
+			v12 = apply_transformation(&v11,projection_matrix);
+			v22 = apply_transformation(&v21,projection_matrix);
+			struct vertex* clip_coords[4] = {&v02,&v12,&v22,&v02};
+		
+			//Normalized Device Coordinates	
+			
+			render_triangle(clip_coords,&colors);
+		}
+	}
 }
 
 void load_models(std::vector<std::string> paths) {
@@ -677,11 +716,54 @@ void load_models(std::vector<std::string> paths) {
 	
 }
 
+void render_mesh(Model *m) {
+
+	//point_light[0][5]+=0.02f;
+	//point_light[1][5]+=0.02f;
+	unsigned char color[4] = {120,120,120,255};
+	float sf = 1.0f;
+	m->scale(sf,sf,sf);
+	float tx = 0.0f;
+	float ty = 0.0f;
+	float tz = 0.0f;
+	float tilt = 0.0f;
+
+	lerpty += (tilt_y - lerpty) * 0.30;
+	lerptx += (tilt_x - lerptx) * 0.30;
+	
+	m->rotate_y(lerpty);
+	m->rotate_x(lerptx);
+	//m->rotate_y(1.5f);
+	camera->lookAt(tx,ty,tz);
+	m->translate(tx,ty,tz);
+	float dir = 1.5f;
+	float rr = 90;
+	//camera->rotate_x(rr);
+	cam_lerp += (cam_zoom - cam_lerp) * 0.25;
+	camera->zoom(cam_lerp);
+	//camera->rotate_y(tilt_y);
+	//camera->rotate_x(tilt_x);
+	camera->update_transform();
+	//camera->rotate_x(-tilt_x);
+	//camera->rotate_y(-tilt_y);
+	camera->zoom(1/cam_lerp);
+	_render_mesh(m);
+	//camera->rotate_x(-rr);
+	//camera->rotate_y(-dir);
+	m->translate(-tx,-ty,-tz);
+	m->rotate_x(-lerptx);
+	m->rotate_y(-lerpty);
+	m->scale(1/sf,1/sf,1/sf);
+
+}
+
 void render() {
 
-	for(int i = 0; i<models.size(); i++) {
-		render_mesh(models[i],camera);
-	}	
+	if (!no_rasterize || draw_wireframe) {
+		for(int i = 0; i<models.size(); i++) {
+			render_mesh(models[i]);
+		}	
+	}
 	display->draw_text("FPS "+std::to_string(fps), 10, 10, colors, 19);	
 	//display->draw_text("mesh: "+g_mesh_path,10,25,colors,19);
 	//display->draw_text("mtl: "+g_mtl_path,10,35,colors,19);
@@ -701,6 +783,40 @@ void handle_mouse_motion(SDL_MouseMotionEvent e) {
 
 }
 
+void handle_keys(SDL_Keycode sym) {
+
+	switch(sym) {
+		case SDLK_w : {
+			draw_wireframe=!draw_wireframe;
+			break;
+		}
+		case SDLK_b : {
+			backface_culling=!backface_culling;
+			break;
+		}
+		case SDLK_r : {
+			no_rasterize=!no_rasterize;
+			break;
+		}
+		case SDLK_a : {
+			ambient=!ambient;
+			break;
+		}
+		case SDLK_d : {
+			diffuse=!diffuse;
+			break;
+		}
+		case SDLK_s : {
+			specular=!specular;
+			break;
+		}
+		case SDLK_g : {
+			smooth_shading=!smooth_shading;
+			break;
+		}
+	}
+}
+
 void handle_event(SDL_Event e) {	
 	switch(e.type){
 		case SDL_MOUSEMOTION : {
@@ -709,6 +825,11 @@ void handle_event(SDL_Event e) {
 		}
 		case SDL_MOUSEWHEEL : {
 			cam_zoom += e.wheel.y*0.05f;
+			break;
+		}
+		case SDL_KEYDOWN : {
+			handle_keys(e.key.keysym.sym);
+			break;
 		}
 	}
 
