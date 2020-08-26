@@ -69,6 +69,10 @@ void Display::show() {
 	
 }
 
+void Display::toggle_depth_buffer() {
+	this->depth_buffering=!this->depth_buffering;
+}
+
 void Display::draw_text(std::string&& str, int x, int y, char* color, int size) {
 
 	SDL_Surface* surfaceMessage;
@@ -118,12 +122,14 @@ void Display::set_pixel(int x, int y, unsigned char* color,float depth) {
 		return;
 	}
 
-	float d = this->depth_buffer[x][y];
-	if (depth<d) {
-		this->depth_buffer[x][y]=depth;
-	}
-	else {
-		return;
+	if (depth_buffering) {
+		float d = this->depth_buffer[x][y];
+		if (depth<d) {
+			this->depth_buffer[x][y]=depth;
+		}
+		else {
+			return;
+		}
 	}
 
 	this->buffer[x][y][0]=color[3];

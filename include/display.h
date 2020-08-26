@@ -42,7 +42,7 @@ class Display {
 		SDL_Window *window;
 		SDL_Renderer *renderer;
 		TTF_Font *font;	
-
+		bool depth_buffering = true;
 
 		Display(int width, int height, std::string title);
 		void show();
@@ -53,6 +53,7 @@ class Display {
 		void set_pixel(int x, int y, unsigned char* color, float depth);
 		void destroy();
 		void set_clear_color(unsigned char color[4]);
+		void toggle_depth_buffer();
 
 	private:
 		void prepare_buffers();

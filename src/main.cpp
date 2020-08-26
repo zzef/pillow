@@ -814,6 +814,11 @@ void handle_keys(SDL_Keycode sym) {
 			smooth_shading=!smooth_shading;
 			break;
 		}
+		case SDLK_z : {
+			display->toggle_depth_buffer();
+			break;
+		}
+
 	}
 }
 
