@@ -56,6 +56,7 @@ bool diffuse = true;
 bool specular = true;
 bool smooth_shading = true;
 bool dark_theme = false;
+bool depth_buffering = true;
 
 Camera* camera;
 int fps = 0;
@@ -90,22 +91,7 @@ float projection_matrix[4][4] = {
 };
 
 
-std::vector<std::string> menu = {
-
-	"Toggle",
-	"",
-	"wireframe",
-	"rasterizer",
-	"backface-culling",
-	"ambient light",
-	"specular light",
-	"diffuse light",
-	"smooth shading",
-	"depth buffering",
-	"draw lights",
-	"dark theme"
-};
-
+std::vector<std::pair<std::string,std::pair<std::string,bool>>> menu;
 std::vector<std::string> menu_c = {
 
 	"","","w","r","b","a","s","d","g","z","l","t"
@@ -812,14 +798,19 @@ void render() {
 	int i = 0;
 	for (std::map<std::string,long>::iterator it=menu_values.begin();it!=menu_values.end(); ++it) {
 		display->draw_text(it->first,100,100+(i*(text_size+spacing)),text_color,text_size);
-		display->draw_text(std::to_string(it->second),230,100+(i*(text_size+spacing)),text_color,text_size);
+		display->draw_text(std::to_string(it->second),260,100+(i*(text_size+spacing)),text_color,text_size);
 		i++;
 	}	
-
+	i = 0;
 	for (int i = 0; i<menu.size(); i++) {
-		display->draw_text(menu[i],100,400+(i*(text_size+spacing)),text_color,text_size);
-		display->draw_text(menu_c[i],320,400+(i*(text_size+spacing)),text_color,text_size);
+		bool toggled = menu[i].second.second;
+		if (toggled && menu[i].first != "Toggle" && !menu[i].first.empty())
+			display->draw_text("*",100,400+(i*(text_size+spacing)),text_color,text_size); 
+		
+		display->draw_text(menu[i].first,100+15,400+(i*(text_size+spacing)),text_color,text_size);
+		display->draw_text(menu[i].second.first,260,400+(i*(text_size+spacing)),text_color,text_size);
 	}
+	
 
 	//display->draw_text("vertices");
 	
@@ -856,11 +847,32 @@ void handle_mouse_motion(SDL_MouseMotionEvent e) {
 
 }
 
+void update_menu () {
+
+	 menu = {
+	
+		{"Toggle",			{"",true}},
+		{"",				{"",true}},
+		{"wireframe",		{"w",draw_wireframe}},
+		{"rasterizer",		{"r",!no_rasterize}},
+		{"backface-culling",{"b",backface_culling}},
+		{"ambient light",	{"a",ambient}},
+		{"specular light",	{"s",specular}},
+		{"diffuse light",	{"d",diffuse}},
+		{"smooth shading",	{"g",smooth_shading}},
+		{"depth buffering",	{"z",depth_buffering}},
+		{"draw lights",		{"l",draw_lights}},
+		{"dark theme",		{"t",dark_theme}}
+	};
+
+}
+
+
 void handle_keys(SDL_Keycode sym) {
 
 	switch(sym) {
 		case SDLK_w : {
-			draw_wireframe=!draw_wireframe;
+			draw_wireframe=!draw_wireframe;	
 			break;
 		}
 		case SDLK_b : {
@@ -900,8 +912,10 @@ void handle_keys(SDL_Keycode sym) {
 			change_theme();
 			break;
 		}
-
 	}
+	update_menu();
+	
+
 }
 
 void handle_event(SDL_Event e) {	
@@ -922,9 +936,12 @@ void handle_event(SDL_Event e) {
 
 }
 
+
 int main(int argc, char* args[]) {
-	
+
+	update_menu();	
 	display = new Display(WIN_WIDTH,WIN_HEIGHT,WINDOW_TITLE);
+	display->depth_buffering = depth_buffering;
 	display->init();
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
