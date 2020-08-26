@@ -45,8 +45,8 @@ float tilt_y = 0;
 float lerpty = 0;
 float lerptx = 0;
 
-bool draw_lights = true;
 // Toggles
+bool draw_lights = false;
 bool no_rasterize = false;
 bool draw_vertex = false;
 bool backface_culling = true;
@@ -98,13 +98,13 @@ std::vector<std::string> menu = {
 	"Toggle specular light",
 	"Toggle diffuse light",
 	"Toggle smooth shading",
-	"Toggle depth buffering"	
-
+	"Toggle depth buffering",
+	"Toggle draw lights"
 };
 
 std::vector<std::string> menu_c = {
 
-	"w","r","b","a","s","d","g","z"
+	"w","r","b","a","s","d","g","z","l"
 };
 
 //lighting
@@ -869,6 +869,10 @@ void handle_keys(SDL_Keycode sym) {
 		}
 		case SDLK_z : {
 			display->toggle_depth_buffer();
+			break;
+		}
+		case SDLK_l : {
+			draw_lights=!draw_lights;
 			break;
 		}
 
