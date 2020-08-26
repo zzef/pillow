@@ -44,6 +44,7 @@ float tilt_x = 0;
 float tilt_y = 0;
 float lerpty = 0;
 float lerptx = 0;
+float tilt = 0;
 
 // Toggles
 bool draw_lights = false;
@@ -57,6 +58,8 @@ bool specular = true;
 bool smooth_shading = true;
 bool dark_theme = false;
 bool depth_buffering = true;
+bool show_materials = true;
+bool model_spin = false;
 
 Camera* camera;
 int fps = 0;
@@ -65,7 +68,8 @@ std::map<std::string,long> menu_values;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {255,255,255,255};					
-const unsigned char wf[3] = {55,55,55};					
+const unsigned char wf[3] = {55,55,55};	
+unsigned char nmc[4] = {0,0,0};				
 char text_color[3] = {120,120,120};
 const unsigned char wf2[3] = {255,255,0};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
@@ -92,10 +96,6 @@ float projection_matrix[4][4] = {
 
 
 std::vector<std::pair<std::string,std::pair<std::string,bool>>> menu;
-std::vector<std::string> menu_c = {
-
-	"","","w","r","b","a","s","d","g","z","l","t"
-};
 
 //lighting
 float light_move=0;
@@ -347,12 +347,19 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 	const int rangex = maxx-minx+1;
 	struct Color vertex_attributes[4];
 	
-	if (!no_rasterize) {
+	if (!show_materials) {
+		vertex_attributes[0]={nmc[0],nmc[1],nmc[2]};
+		vertex_attributes[1]={nmc[0],nmc[1],nmc[2]};
+		vertex_attributes[2]={nmc[0],nmc[1],nmc[2]};
+		vertex_attributes[3]={nmc[0],nmc[1],nmc[2]};
+	}
+	else if (!no_rasterize ) {
 		vertex_attributes[0]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
 		vertex_attributes[1]={colors->at(1).x,colors->at(1).y,colors->at(1).z};
 		vertex_attributes[2]={colors->at(2).x,colors->at(2).y,colors->at(2).z};
 		vertex_attributes[3]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
 	}
+	
 
 	get_pairs(poly_r,vertex_attributes,min,minx);
 	for (int l = 0; l<range; l++) {
@@ -458,7 +465,7 @@ long _render_mesh(Model *m) {
 	long culled = 0;	
 		//Normalized Device Coordinates	
 	
-	if (no_rasterize) {
+	if (no_rasterize || !show_materials) {
 		for (int i = 0; i<m->tris(); i++) {
 			
 			std::vector<struct vector3D> colors;
@@ -740,8 +747,7 @@ long render_mesh(Model *m) {
 	float tx = 0.0f;
 	float ty = 0.0f;
 	float tz = 0.0f;
-	float tilt = 0.0f;
-
+	tilt_y+=tilt;
 	lerpty += (tilt_y - lerpty) * 0.30;
 	lerptx += (tilt_x - lerptx) * 0.30;
 	
@@ -805,10 +811,10 @@ void render() {
 	for (int i = 0; i<menu.size(); i++) {
 		bool toggled = menu[i].second.second;
 		if (toggled && menu[i].first != "Toggle" && !menu[i].first.empty())
-			display->draw_text("*",100,400+(i*(text_size+spacing)),text_color,text_size); 
+			display->draw_text("*",100,320+(i*(text_size+spacing)),text_color,text_size); 
 		
-		display->draw_text(menu[i].first,100+15,400+(i*(text_size+spacing)),text_color,text_size);
-		display->draw_text(menu[i].second.first,260,400+(i*(text_size+spacing)),text_color,text_size);
+		display->draw_text(menu[i].first,100+15,320+(i*(text_size+spacing)),text_color,text_size);
+		display->draw_text(menu[i].second.first,260,320+(i*(text_size+spacing)),text_color,text_size);
 	}
 	
 
@@ -823,27 +829,52 @@ void render() {
 void update() {
 }
 
-void change_theme() {
+void update_theme() {
 
 	if (dark_theme) {
-		clear_color[0]=35;	
-		clear_color[1]=35;	
-		clear_color[2]=35;	
+		clear_color[0]=30;	
+		clear_color[1]=30;	
+		clear_color[2]=30;	
+		wfc[0]=80;
+		wfc[1]=80;
+		wfc[2]=80;
+		nmc[0]=clear_color[0]-20;
+		nmc[1]=clear_color[1]-20;
+		nmc[2]=clear_color[2]-20;
 	}
 	else {
 		clear_color[0]=225;	
 		clear_color[1]=225;	
-		clear_color[2]=225;		
+		clear_color[2]=225;	
+		wfc[0]=55;
+		wfc[1]=55;
+		wfc[2]=55;
+		nmc[0]=clear_color[0]+20;
+		nmc[1]=clear_color[1]+20;
+		nmc[2]=clear_color[2]+20;
+
 	}
 	display->set_clear_color(clear_color);
 }
 
 void handle_mouse_motion(SDL_MouseMotionEvent e) {
-	
-	if (e.state) {
-		tilt_y-=(e.xrel*0.25);
-		tilt_x-=(e.yrel*0.25);
-	}		
+
+	if (!no_rasterize || draw_wireframe) {	
+		if (e.state) {
+			tilt_y-=(e.xrel*0.25);
+			tilt_x-=(e.yrel*0.25);
+		}	
+	}	
+}
+
+void handle_model_spin() {
+
+	if (model_spin) {
+		tilt=0.9;
+	}
+	else {
+		tilt=0;
+	}
 
 }
 
@@ -855,6 +886,7 @@ void update_menu () {
 		{"",				{"",true}},
 		{"wireframe",		{"w",draw_wireframe}},
 		{"rasterizer",		{"r",!no_rasterize}},
+		{"materials",		{"m",show_materials}},
 		{"backface-culling",{"b",backface_culling}},
 		{"ambient light",	{"a",ambient}},
 		{"specular light",	{"s",specular}},
@@ -862,7 +894,8 @@ void update_menu () {
 		{"smooth shading",	{"g",smooth_shading}},
 		{"depth buffering",	{"z",depth_buffering}},
 		{"draw lights",		{"l",draw_lights}},
-		{"dark theme",		{"t",dark_theme}}
+		{"dark theme",		{"t",dark_theme}},
+		{"spin model",		{"c",model_spin}}
 	};
 
 }
@@ -881,6 +914,10 @@ void handle_keys(SDL_Keycode sym) {
 		}
 		case SDLK_r : {
 			no_rasterize=!no_rasterize;
+			break;
+		}
+		case SDLK_m : {
+			show_materials=!show_materials;
 			break;
 		}
 		case SDLK_a : {
@@ -908,9 +945,14 @@ void handle_keys(SDL_Keycode sym) {
 			draw_lights=!draw_lights;
 			break;
 		}
+		case SDLK_c : {
+			model_spin=!model_spin;
+			handle_model_spin();
+			break;
+		}
 		case SDLK_t : {
 			dark_theme=!dark_theme;
-			change_theme();
+			update_theme();
 			break;
 		}
 	}
@@ -926,7 +968,8 @@ void handle_event(SDL_Event e) {
 			break;
 		}
 		case SDL_MOUSEWHEEL : {
-			cam_zoom += e.wheel.y*0.05f;
+			if (!no_rasterize || draw_wireframe) 
+				cam_zoom += e.wheel.y*0.05f;
 			break;
 		}
 		case SDL_KEYDOWN : {
@@ -940,9 +983,10 @@ void handle_event(SDL_Event e) {
 
 int main(int argc, char* args[]) {
 
-	update_menu();	
+	update_menu();
 	display = new Display(WIN_WIDTH,WIN_HEIGHT,WINDOW_TITLE);
 	display->depth_buffering = depth_buffering;
+	update_theme();	
 	display->init();
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
