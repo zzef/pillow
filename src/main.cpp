@@ -55,8 +55,8 @@ bool ambient = true;
 bool diffuse = true;
 bool specular = true;
 bool smooth_shading = true;
+bool dark_theme = false;
 
-char colors[3] = {120,120,120};
 Camera* camera;
 int fps = 0;
 
@@ -64,10 +64,11 @@ std::map<std::string,long> menu_values;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {255,255,255,255};					
-const unsigned char wf[3] = {40,40,40};					
+const unsigned char wf[3] = {55,55,55};					
+char text_color[3] = {120,120,120};
 const unsigned char wf2[3] = {255,255,0};					
 unsigned char wfc[4] = {wf[0],wf[1],wf[2],255};
-unsigned char clear_color[4] = {220,220,220,255};
+unsigned char clear_color[4] = {225,225,225,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
@@ -91,20 +92,23 @@ float projection_matrix[4][4] = {
 
 std::vector<std::string> menu = {
 
-	"Toggle wireframe",
-	"Toggle rasterizer",
-	"Toggle backface-culling",
-	"Toggle ambient light",
-	"Toggle specular light",
-	"Toggle diffuse light",
-	"Toggle smooth shading",
-	"Toggle depth buffering",
-	"Toggle draw lights"
+	"Toggle",
+	"",
+	"wireframe",
+	"rasterizer",
+	"backface-culling",
+	"ambient light",
+	"specular light",
+	"diffuse light",
+	"smooth shading",
+	"depth buffering",
+	"draw lights",
+	"dark theme"
 };
 
 std::vector<std::string> menu_c = {
 
-	"w","r","b","a","s","d","g","z","l"
+	"","","w","r","b","a","s","d","g","z","l","t"
 };
 
 //lighting
@@ -331,6 +335,7 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
 		float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
 		float z = v->w;
+
 		struct vector3D r1 = {x,y,1/z};
 
 		if (draw_vertex)
@@ -783,7 +788,8 @@ long render_mesh(Model *m) {
 void render() {
 
 	int text_size = 15;
-	
+	int spacing = 3;	
+
 	menu_values["vertices"] = 0;
 	menu_values["normals"] = 0;
 	menu_values["polygons"] = 0;
@@ -801,30 +807,44 @@ void render() {
 	}
 	
 
-	display->draw_text("FPS "+std::to_string(fps), 10, 10, colors, text_size);	
+	display->draw_text("FPS "+std::to_string(fps), 10, 10, text_color, text_size);	
 
 	int i = 0;
 	for (std::map<std::string,long>::iterator it=menu_values.begin();it!=menu_values.end(); ++it) {
-		display->draw_text(it->first,100,100+(i*(text_size+4)),colors,text_size);
-		display->draw_text(std::to_string(it->second),230,100+(i*(text_size+4)),colors,text_size);
+		display->draw_text(it->first,100,100+(i*(text_size+spacing)),text_color,text_size);
+		display->draw_text(std::to_string(it->second),230,100+(i*(text_size+spacing)),text_color,text_size);
 		i++;
 	}	
 
 	for (int i = 0; i<menu.size(); i++) {
-		display->draw_text(menu[i],100,400+(i*(text_size+4)),colors,text_size);
-		display->draw_text(menu_c[i],320,400+(i*(text_size+4)),colors,text_size);
+		display->draw_text(menu[i],100,400+(i*(text_size+spacing)),text_color,text_size);
+		display->draw_text(menu_c[i],320,400+(i*(text_size+spacing)),text_color,text_size);
 	}
 
 	//display->draw_text("vertices");
 	
 
-	display->draw_text("mtl: "+g_mtl_path,20,WIN_HEIGHT-48,colors,text_size-3);
-	display->draw_text("mesh: "+g_mesh_path,20,WIN_HEIGHT-30,colors,text_size-3);
+	display->draw_text("mtl: "+g_mtl_path,20,WIN_HEIGHT-43,text_color,text_size-3);
+	display->draw_text("mesh: "+g_mesh_path,20,WIN_HEIGHT-30,text_color,text_size-3);
 	display->show();
 }
 
 void update() {
-	//TODO
+}
+
+void change_theme() {
+
+	if (dark_theme) {
+		clear_color[0]=35;	
+		clear_color[1]=35;	
+		clear_color[2]=35;	
+	}
+	else {
+		clear_color[0]=225;	
+		clear_color[1]=225;	
+		clear_color[2]=225;		
+	}
+	display->set_clear_color(clear_color);
 }
 
 void handle_mouse_motion(SDL_MouseMotionEvent e) {
@@ -873,6 +893,11 @@ void handle_keys(SDL_Keycode sym) {
 		}
 		case SDLK_l : {
 			draw_lights=!draw_lights;
+			break;
+		}
+		case SDLK_t : {
+			dark_theme=!dark_theme;
+			change_theme();
 			break;
 		}
 
