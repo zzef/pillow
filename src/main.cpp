@@ -45,12 +45,12 @@ float tilt_y = 0;
 float lerpty = 0;
 float lerptx = 0;
 
+bool draw_lights = true;
 // Toggles
 bool no_rasterize = false;
 bool draw_vertex = false;
 bool backface_culling = true;
 bool draw_wireframe = false;
-bool draw_lights = false;
 bool ambient = true;
 bool diffuse = true;
 bool specular = true;
@@ -60,7 +60,7 @@ char colors[3] = {120,120,120};
 Camera* camera;
 int fps = 0;
 
-
+std::map<std::string,long> menu_values;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
 struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {255,255,255,255};					
@@ -88,6 +88,24 @@ float projection_matrix[4][4] = {
 
 };
 
+
+std::vector<std::string> menu = {
+
+	"Toggle wireframe",
+	"Toggle rasterizer",
+	"Toggle backface-culling",
+	"Toggle ambient light",
+	"Toggle specular light",
+	"Toggle diffuse light",
+	"Toggle smooth shading",
+	"Toggle depth buffering"	
+
+};
+
+std::vector<std::string> menu_c = {
+
+	"w","r","b","a","s","d","g","z"
+};
 
 //lighting
 float light_move=0;
@@ -433,7 +451,7 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		}
 	}
 }
-void _render_mesh(Model *m) {
+long _render_mesh(Model *m) {
 
 	struct vertex *v00;
 	struct vertex *v10;
@@ -446,11 +464,11 @@ void _render_mesh(Model *m) {
 	struct vertex v02;
 	struct vertex v12;
 	struct vertex v22;
-	
+	long culled = 0;	
 		//Normalized Device Coordinates	
 	
 	if (no_rasterize) {
-		for (int i = 0; i<m->triangles(); i++) {
+		for (int i = 0; i<m->tris(); i++) {
 			
 			std::vector<struct vector3D> colors;
 			struct face f = m->faces.at(i);
@@ -486,8 +504,10 @@ void _render_mesh(Model *m) {
 			//backface culling
 
 			if (backface_culling) {
-				if (f_norm.dot(diff)>0) 
-				continue;
+				if (f_norm.dot(diff)>0) {
+					culled++;
+					continue;
+				}
 			}
 	
 			render_triangle(clip_coords,&colors);
@@ -520,7 +540,7 @@ void _render_mesh(Model *m) {
 	
 		}
 	
-		for (int i = 0; i<m->triangles(); i++) {
+		for (int i = 0; i<m->tris(); i++) {
 		
 			std::vector<struct vector3D> colors;
 			struct mtl* mat = m->mats.at(i);
@@ -573,8 +593,10 @@ void _render_mesh(Model *m) {
 			//backface culling
 	
 			if (backface_culling) {
-				if (f_norm.dot(diff)>0) 
+				if (f_norm.dot(diff)>0) {
+					culled++;
 					continue;
+				}
 			}
 	
 			//lighting	
@@ -667,6 +689,7 @@ void _render_mesh(Model *m) {
 			render_triangle(clip_coords,&colors);
 		}
 	}
+	return culled;
 }
 
 void load_models(std::vector<std::string> paths) {
@@ -716,7 +739,7 @@ void load_models(std::vector<std::string> paths) {
 	
 }
 
-void render_mesh(Model *m) {
+long render_mesh(Model *m) {
 
 	//point_light[0][5]+=0.02f;
 	//point_light[1][5]+=0.02f;
@@ -747,26 +770,56 @@ void render_mesh(Model *m) {
 	//camera->rotate_x(-tilt_x);
 	//camera->rotate_y(-tilt_y);
 	camera->zoom(1/cam_lerp);
-	_render_mesh(m);
+	long culled = _render_mesh(m);
 	//camera->rotate_x(-rr);
 	//camera->rotate_y(-dir);
 	m->translate(-tx,-ty,-tz);
 	m->rotate_x(-lerptx);
 	m->rotate_y(-lerpty);
 	m->scale(1/sf,1/sf,1/sf);
-
+	return culled;
 }
 
 void render() {
 
+	int text_size = 15;
+	
+	menu_values["vertices"] = 0;
+	menu_values["normals"] = 0;
+	menu_values["polygons"] = 0;
+	menu_values["triangles"] = 0;
+	menu_values["triangles culled"] = 0;
+
 	if (!no_rasterize || draw_wireframe) {
 		for(int i = 0; i<models.size(); i++) {
-			render_mesh(models[i]);
+			menu_values["vertices"] += models[i]->verts();
+			menu_values["normals"] += models[i]->norms();
+			menu_values["polygons"] += models[i]->polys();
+			menu_values["triangles"] += models[i]->tris();
+			menu_values["triangles culled"] += render_mesh(models[i]);
 		}	
 	}
-	display->draw_text("FPS "+std::to_string(fps), 10, 10, colors, 19);	
-	//display->draw_text("mesh: "+g_mesh_path,10,25,colors,19);
-	//display->draw_text("mtl: "+g_mtl_path,10,35,colors,19);
+	
+
+	display->draw_text("FPS "+std::to_string(fps), 10, 10, colors, text_size);	
+
+	int i = 0;
+	for (std::map<std::string,long>::iterator it=menu_values.begin();it!=menu_values.end(); ++it) {
+		display->draw_text(it->first,100,100+(i*(text_size+4)),colors,text_size);
+		display->draw_text(std::to_string(it->second),230,100+(i*(text_size+4)),colors,text_size);
+		i++;
+	}	
+
+	for (int i = 0; i<menu.size(); i++) {
+		display->draw_text(menu[i],100,400+(i*(text_size+4)),colors,text_size);
+		display->draw_text(menu_c[i],320,400+(i*(text_size+4)),colors,text_size);
+	}
+
+	//display->draw_text("vertices");
+	
+
+	display->draw_text("mtl: "+g_mtl_path,20,WIN_HEIGHT-48,colors,text_size-3);
+	display->draw_text("mesh: "+g_mesh_path,20,WIN_HEIGHT-30,colors,text_size-3);
 	display->show();
 }
 

@@ -24,6 +24,7 @@ class Model {
 	public:
 		std::vector<struct vertex> normals;
 		std::vector<struct vertex> vertices;
+		long polygons;
 		std::map<std::string,struct mtl*> materials;
 		std::string name;
 		Material *material = 0;
@@ -53,8 +54,10 @@ class Model {
 		void store_triangles();
 		void store_materials();
 		void normalize();
+		long polys();
+		long norms();
 		long verts();
-		long triangles();
+		long tris();
 		void scale(float x, float y, float z);
 		void rotate_x(float angle);
 		void rotate_y(float angle);

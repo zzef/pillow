@@ -52,7 +52,12 @@ void Model::apply_attr(Material *material) {
 	this->store_materials();
 }
 
+long Model::polys() {
+	return this->polygons;
+}
+
 void Model::apply_attr(Mesh *mesh) {
+	this->polygons = mesh->polygons();
 	this->vertices = mesh->v_list;
 	this->normals = mesh->n_list;
 	this->mesh=mesh;
@@ -212,11 +217,15 @@ void Model::normalize() {
 	}
 }
 
+long Model::norms() {
+	return this->normals.size();
+}
+
 long Model::verts() {
 	return this->vertices.size();
 }
 
-long Model::triangles() {
+long Model::tris() {
 	return this->faces.size();
 }
 

@@ -32,10 +32,9 @@ class Display {
 
 		unsigned char buffer[MAX_W][MAX_H][4];
 		float depth_buffer[MAX_W][MAX_H];
-		std::queue<s_text> text_queue;
 		int height;
 		int width;
-		int FONT_H = 400;	
+		int FONT_H = 30;	
 		std::string title;
 		unsigned char clc[4] = {30,30,30,255};
 		SDL_Texture *Frame;
@@ -48,6 +47,7 @@ class Display {
 		void show();
 		void clear_buffer();
 		void init();
+		void draw_text(const std::string& str, int x, int y, char* color, int size);
 		void draw_text(std::string&& str, int x, int y, char* color, int size);
 		void flip_buffer();
 		void set_pixel(int x, int y, unsigned char* color, float depth);
