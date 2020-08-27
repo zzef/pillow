@@ -72,6 +72,7 @@ bool depth_buffering = true;
 bool show_materials = true;
 bool model_spin = false;
 bool camera_mode = false;
+bool default_material = false;
 
 Camera* camera;
 int fps = 0;
@@ -554,6 +555,10 @@ long _render_mesh(Model *m) {
 		
 			std::vector<struct vector3D> colors;
 			struct mtl* mat = m->mats.at(i);
+			if (default_material) {
+				mat = new mtl();
+				init_mat(mat);
+			}
 			bool has_normals = m->has_normals();
 			//if (!(i==4 || i==5))
 			//	continue;
@@ -946,7 +951,9 @@ void update_menu () {
 		{"draw lights",		{"l",draw_lights}},
 		{"dark theme",		{"t",dark_theme}},
 		{"spin model",		{"c",model_spin}},
-		{"camera mode",		{"v",camera_mode}}
+		{"camera mode",		{"v",camera_mode}},
+		{"default material",{"n",default_material}}
+
 	};
 
 }
@@ -983,6 +990,10 @@ void handle_keys(SDL_Keycode sym) {
 			specular=!specular;
 			break;
 		}
+		case SDLK_n : {
+			default_material=!default_material;
+			break;
+		}	
 		case SDLK_g : {
 			smooth_shading=!smooth_shading;
 			break;
