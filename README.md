@@ -1,6 +1,6 @@
 # pillow
 
-Pillow is a 3D software rendering engine built from scratch in C++. It intentionally uses no API's (no opengl/directx/vulkan etc) or libraries for rendering graphics. Consequently, all calculations and algorithms are implemented from the ground up. This was done for learning purposes and personal entertainment. So far the engine features:
+Pillow is a 3D software rendering engine built from scratch in C++. It intentionally uses no API's (no opengl/directx/vulkan etc) or libraries for rendering graphics. Consequently, all calculations and algorithms are implemented from the ground up. This was done for learning purposes and personal entertainment. This is by no means a finished project and the code has a tonne of issues. So far the engine features:
 
 - Wireframe rendering (perspective projection)
 - Compatibility with .obj files
@@ -12,8 +12,9 @@ Pillow is a 3D software rendering engine built from scratch in C++. It intention
 - Back-face culling
 - Gouraud shading using the phong illumination model
 
-## Things to do
+## Issues/Things to do
 - Proper memory management (Not good at all right now)
+- Better parser for loading mesh and material files (current method does not account for errors in files)
 - Finish off clipping
 - Implement arcball camera
 - Implement texturing
