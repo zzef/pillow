@@ -38,7 +38,7 @@ void Display::init() {
 		printf("TTF_Init: %s\n",TTF_GetError());
 
 	for (int i = this->min_font_size; i<=this->max_font_size; i++) {
-		TTF_Font *font = TTF_OpenFont("/home/zef/pillow/fonts/Overpass-Regular.ttf",i);
+		TTF_Font *font = TTF_OpenFont("/home/zef/pillow/fonts/BalooTamma2-Medium.ttf",i);
 		if (!font)
 			printf("TTF_OpenFont: %s\n",TTF_GetError());
 		else {

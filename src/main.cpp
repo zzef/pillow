@@ -803,7 +803,8 @@ long render_mesh(Model *m) {
 
 void render() {
 
-	int text_size = 15;
+	int text_size = 13;
+	int margin_text = 12;
 	int spacing = 3;	
 
 	menu_values["vertices"] = 0;
@@ -828,25 +829,27 @@ void render() {
 	int i = 0;
 	for (std::map<std::string,long>::iterator it=menu_values.begin();it!=menu_values.end(); ++it) {
 		display->draw_text(it->first,100,100+(i*(text_size+spacing)),text_color,text_size);
-		display->draw_text(std::to_string(it->second),260,100+(i*(text_size+spacing)),text_color,text_size);
+		display->draw_text(std::to_string(it->second),280,100+(i*(text_size+spacing)),text_color,text_size);
 		i++;
 	}	
 	i = 0;
 	for (int i = 0; i<menu.size(); i++) {
 		bool toggled = menu[i].second.second;
 		if (toggled && menu[i].first != "Toggle" && !menu[i].first.empty())
-			display->draw_text("*",100,320+(i*(text_size+spacing)),text_color,text_size); 
-		
-		display->draw_text(menu[i].first,100+15,320+(i*(text_size+spacing)),text_color,text_size);
-		display->draw_text(menu[i].second.first,260,320+(i*(text_size+spacing)),text_color,text_size);
+			display->draw_text("+",100,280+(i*(text_size+spacing)),text_color,text_size); 
+		//else if (menu[i].first != "Toggle" && !menu[i].first.empty())
+			//display->draw_text("[  ]",100,280+(i*(text_size+spacing)),text_color,text_size); 
+	
+		display->draw_text(menu[i].first,100+15,280+(i*(text_size+spacing)),text_color,text_size);
+		display->draw_text(menu[i].second.first,280,280+(i*(text_size+spacing)),text_color,text_size);
 	}
 	
 
 	//display->draw_text("vertices");
 	
 	display->draw_text("press (e) to reset orientation",WIN_WIDTH-310,100,text_color,text_size);
-	display->draw_text("mtl: "+g_mtl_path,20,WIN_HEIGHT-43,text_color,text_size-3);
-	display->draw_text("mesh: "+g_mesh_path,20,WIN_HEIGHT-30,text_color,text_size-3);
+	display->draw_text("mtl:           "+g_mtl_path,15,WIN_HEIGHT-45,text_color,margin_text);
+	display->draw_text("mesh:      "+g_mesh_path,15,WIN_HEIGHT-30,text_color,margin_text);
 	display->show();
 }
 
