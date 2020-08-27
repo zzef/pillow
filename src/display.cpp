@@ -43,7 +43,7 @@ void Display::init() {
 			printf("TTF_OpenFont: %s\n",TTF_GetError());
 		else {
 			fonts[i]=font;
-			printf("Loaded %ipx font!\n",i);
+			//printf("Loaded %ipx font!\n",i);
 		}
 	}
 	
