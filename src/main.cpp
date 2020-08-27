@@ -38,6 +38,17 @@ int curr_my = 0;
 int prev_mx = 0;
 int prev_my = 0;
 
+float tx = 0.0f;
+float ty = 0.0f;
+float tz = 0.0f;
+float lerp_tx = 0.0f;
+float lerp_ty = 0.0f;
+float lerp_tz = 0.0f;
+float cam_x = 0.0f;
+float cam_y = 0.0f;
+float camxlerp = 0.0f;
+float camylerp = 0.0f;
+
 float cam_zoom = 0.9;
 float cam_lerp = 0;
 float tilt_x = 0;
@@ -60,6 +71,7 @@ bool dark_theme = false;
 bool depth_buffering = true;
 bool show_materials = true;
 bool model_spin = false;
+bool camera_mode = false;
 
 Camera* camera;
 int fps = 0;
@@ -744,33 +756,40 @@ long render_mesh(Model *m) {
 	unsigned char color[4] = {120,120,120,255};
 	float sf = 1.0f;
 	m->scale(sf,sf,sf);
-	float tx = 0.0f;
-	float ty = 0.0f;
-	float tz = 0.0f;
 	tilt_y+=tilt;
+	
+	camylerp += (cam_y - camylerp) * 0.30;
+	camxlerp += (cam_x - camxlerp) * 0.30;
+
 	lerpty += (tilt_y - lerpty) * 0.30;
 	lerptx += (tilt_x - lerptx) * 0.30;
+
+	//lerpty = fmod(tilt_y,360);
+	//lerptx = fmod(tilt_x,360);	
+
+	lerp_ty += (ty - lerp_ty) * 0.30;
+	lerp_tx += (tx - lerp_tx) * 0.30;
 	
 	m->rotate_y(lerpty);
 	m->rotate_x(lerptx);
 	//m->rotate_y(1.5f);
-	camera->lookAt(tx,ty,tz);
-	m->translate(tx,ty,tz);
+	//camera->lookAt(tx,ty,tz);
+	m->translate(lerp_tx,lerp_ty,lerp_tz);
 	float dir = 1.5f;
 	float rr = 90;
 	//camera->rotate_x(rr);
 	cam_lerp += (cam_zoom - cam_lerp) * 0.25;
 	camera->zoom(cam_lerp);
-	//camera->rotate_y(tilt_y);
-	//camera->rotate_x(tilt_x);
+	camera->rotate_y(camylerp);
+	camera->rotate_x(camxlerp);
 	camera->update_transform();
 	//camera->rotate_x(-tilt_x);
 	//camera->rotate_y(-tilt_y);
 	camera->zoom(1/cam_lerp);
 	long culled = _render_mesh(m);
-	//camera->rotate_x(-rr);
-	//camera->rotate_y(-dir);
-	m->translate(-tx,-ty,-tz);
+	camera->rotate_x(-camxlerp);
+	camera->rotate_y(-camylerp);
+	m->translate(-lerp_tx,-lerp_ty,-lerp_tz);
 	m->rotate_x(-lerptx);
 	m->rotate_y(-lerpty);
 	m->scale(1/sf,1/sf,1/sf);
@@ -820,7 +839,7 @@ void render() {
 
 	//display->draw_text("vertices");
 	
-
+	display->draw_text("press (e) to reset orientation",WIN_WIDTH-310,100,text_color,text_size);
 	display->draw_text("mtl: "+g_mtl_path,20,WIN_HEIGHT-43,text_color,text_size-3);
 	display->draw_text("mesh: "+g_mesh_path,20,WIN_HEIGHT-30,text_color,text_size-3);
 	display->show();
@@ -860,11 +879,42 @@ void update_theme() {
 void handle_mouse_motion(SDL_MouseMotionEvent e) {
 
 	if (!no_rasterize || draw_wireframe) {	
-		if (e.state) {
-			tilt_y-=(e.xrel*0.25);
-			tilt_x-=(e.yrel*0.25);
+		switch(e.state) {
+			case SDL_BUTTON_LMASK : {
+				if (camera_mode) {
+					cam_y+=(e.xrel*0.25);
+					cam_x+=(e.yrel*0.25);			
+				}
+				else {
+					tilt_y-=(e.xrel*0.25);
+					tilt_x-=(e.yrel*0.25);
+				}
+				break;
+			}
+			case SDL_BUTTON_RMASK : {
+				if (camera_mode) {
+			
+				}
+				else {
+					tx+=(e.xrel*0.005);
+					ty-=(e.yrel*0.005);
+				}	
+				break;
+			}
 		}	
 	}	
+}
+
+void reset_positions() {
+	
+	tx = 0;
+	ty = 0;
+	tz = 0;
+	tilt_x = 0;
+	tilt_y = 0;
+	cam_zoom = 0.9;
+	cam_x = 0;
+	cam_y = 0;
 }
 
 void handle_model_spin() {
@@ -895,7 +945,8 @@ void update_menu () {
 		{"depth buffering",	{"z",depth_buffering}},
 		{"draw lights",		{"l",draw_lights}},
 		{"dark theme",		{"t",dark_theme}},
-		{"spin model",		{"c",model_spin}}
+		{"spin model",		{"c",model_spin}},
+		{"camera mode",		{"v",camera_mode}}
 	};
 
 }
@@ -936,6 +987,10 @@ void handle_keys(SDL_Keycode sym) {
 			smooth_shading=!smooth_shading;
 			break;
 		}
+		case SDLK_v : {
+			camera_mode=!camera_mode;
+			break;
+		}
 		case SDLK_z : {
 			display->toggle_depth_buffer();
 			depth_buffering=!depth_buffering;
@@ -953,6 +1008,10 @@ void handle_keys(SDL_Keycode sym) {
 		case SDLK_t : {
 			dark_theme=!dark_theme;
 			update_theme();
+			break;
+		}
+		case SDLK_e : {
+			reset_positions();
 			break;
 		}
 	}
@@ -991,8 +1050,9 @@ int main(int argc, char* args[]) {
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
 	camera = new Camera();
-	camera->position(0,0.1,3);	
+	camera->position(0,0,3);	
 	camera->lookAt(0,0,0);
+	
 	int frames = 0;
 	clock_t before = clock();
 
