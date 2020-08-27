@@ -40,8 +40,10 @@ class Display {
 		SDL_Texture *Frame;
 		SDL_Window *window;
 		SDL_Renderer *renderer;
-		TTF_Font *font;	
+		std::map<int,TTF_Font*> fonts;
 		bool depth_buffering = true;
+		int min_font_size = 5;
+		int max_font_size = 35;
 
 		Display(int width, int height, std::string title);
 		void show();

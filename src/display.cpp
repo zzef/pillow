@@ -37,11 +37,14 @@ void Display::init() {
 	if (TTF_Init()==-1) 
 		printf("TTF_Init: %s\n",TTF_GetError());
 
-	this->font = TTF_OpenFont("/home/zef/pillow/fonts/Overpass-Regular.ttf",FONT_H);
-	if (!font)
-		printf("TTF_OpenFont: %s\n",TTF_GetError());
-	else {
-		printf("got it!\n");
+	for (int i = this->min_font_size; i<=this->max_font_size; i++) {
+		TTF_Font *font = TTF_OpenFont("/home/zef/pillow/fonts/Overpass-Regular.ttf",i);
+		if (!font)
+			printf("TTF_OpenFont: %s\n",TTF_GetError());
+		else {
+			fonts[i]=font;
+			printf("Loaded %ipx font!\n",i);
+		}
 	}
 	
 	SDL_Init(SDL_INIT_EVERYTHING);
@@ -74,20 +77,21 @@ void Display::toggle_depth_buffer() {
 
 void Display::draw_text(std::string&& str, int x, int y, char* color, int size) {
 
+	size = std::max(this->min_font_size,std::min(size,this->max_font_size));
 	SDL_Surface* surfaceMessage;
 	SDL_Texture* Message;
 	const char * string = str.c_str();
 	int w,h;
 	//printf("%s\n %i %i %i\n",string,txt.color[0],txt.color[1],txt.color[2]);
-	TTF_SizeText(this->font,string,&w,&h);
+	TTF_SizeText(this->fonts[size],string,&w,&h);
 	SDL_Color col = {color[0],color[1],color[2]};
-	surfaceMessage = TTF_RenderText_Solid(this->font,string,col);
+	surfaceMessage = TTF_RenderText_Blended(this->fonts[size],string,col);
 	Message = SDL_CreateTextureFromSurface(this->renderer,surfaceMessage);
 	SDL_Rect Message_rect;
 	Message_rect.x = x;
 	Message_rect.y = y;
-	Message_rect.w = w*((int) size/ (float) FONT_H);
-	Message_rect.h = h*((int) size/ (float) FONT_H);
+	Message_rect.w = w;
+	Message_rect.h = h;
 	SDL_RenderCopy(this->renderer,Message,NULL,&Message_rect);	
 	SDL_FreeSurface(surfaceMessage);
 	SDL_DestroyTexture(Message);
@@ -96,20 +100,21 @@ void Display::draw_text(std::string&& str, int x, int y, char* color, int size) 
 
 void Display::draw_text(const std::string& str, int x, int y, char* color, int size) {
 
+	size = std::max(this->min_font_size,std::min(size,this->max_font_size));
 	SDL_Surface* surfaceMessage;
 	SDL_Texture* Message;
 	const char * string = str.c_str();
 	int w,h;
 	//printf("%s\n %i %i %i\n",string,txt.color[0],txt.color[1],txt.color[2]);
-	TTF_SizeText(this->font,string,&w,&h);
+	TTF_SizeText(this->fonts[size],string,&w,&h);
 	SDL_Color col = {color[0],color[1],color[2]};
-	surfaceMessage = TTF_RenderText_Solid(this->font,string,col);
+	surfaceMessage = TTF_RenderText_Blended(this->fonts[size],string,col);
 	Message = SDL_CreateTextureFromSurface(this->renderer,surfaceMessage);
 	SDL_Rect Message_rect;
 	Message_rect.x = x;
 	Message_rect.y = y;
-	Message_rect.w = w*((int) size/ (float) FONT_H);
-	Message_rect.h = h*((int) size/ (float) FONT_H);
+	Message_rect.w = w;
+	Message_rect.h = h;
 	SDL_RenderCopy(this->renderer,Message,NULL,&Message_rect);	
 	SDL_FreeSurface(surfaceMessage);
 	SDL_DestroyTexture(Message);
