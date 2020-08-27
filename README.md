@@ -5,7 +5,6 @@ Pillow is a 3D software rendering engine built from scratch in C++. It intention
 - Wireframe rendering (perspective projection)
 - Compatibility with .obj files
 - A look at camera
-- Clipping (still incomplete)
 - Rasterization and color interpolation using scanline algorithm
 - Material rendering 
 - Compatibility with .mtl files
