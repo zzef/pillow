@@ -91,7 +91,7 @@ bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
 const float far = 10;
-const float near = 0;
+const float near = 1;
 const int fov = 90;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
@@ -345,7 +345,7 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		x = std::max(std::min((float)WIN_WIDTH-1,x),0.0f);
 		y = std::max(std::min((float)WIN_HEIGHT-1,y),0.0f);	
 
-		float z = v->z;
+		float z = v->w;
 		struct vector3D r1 = {x,y,1/z};
 
 		if (draw_vertex)
@@ -545,10 +545,13 @@ long _render_mesh(Model *m) {
 					continue;
 				}
 			}
-	
-			if ( v02.z<=(v02.z/v02.w) || v12.z<=(v12.z/v12.w) || v22.z<=(v22.z/v22.w )) //crappy clipping
-				continue;
-		
+
+			if ( v02.z>v02.w || v12.z>v12.w || v22.z>v22.w) //crappy clipping
+				continue;	
+
+
+			if ( v02.z<-v02.w || v12.z<-v12.w || v22.z<-v22.w) //crappy clipping
+				continue;	
 
 			render_triangle(clip_coords,&colors);
 		}
@@ -730,7 +733,11 @@ long _render_mesh(Model *m) {
 		
 			//Normalized Device Coordinates	
 
-			if ( v02.z<=(v02.z/v02.w) || v12.z<=(v12.z/v12.w) || v22.z<=(v22.z/v22.w )) //crappy clipping
+			if ( v02.z>v02.w || v12.z>v12.w || v22.z>v22.w) //crappy clipping
+				continue;	
+
+
+			if ( v02.z<-v02.w || v12.z<-v12.w || v22.z<-v22.w) //crappy clipping
 				continue;
 		
 			render_triangle(clip_coords,&colors);
@@ -790,6 +797,7 @@ long render_mesh(Model *m) {
 
 	//point_light[0][5]+=0.02f;
 	//point_light[1][5]+=0.02f;
+	cam_zoom = std::max(0.1f,cam_zoom);
 	unsigned char color[4] = {120,120,120,255};
 	cam_lerp += (cam_zoom - cam_lerp) * 0.25;
 	float sf = cam_lerp;
@@ -816,13 +824,13 @@ long render_mesh(Model *m) {
 	float dir = 1.5f;
 	float rr = 90;
 	//camera->rotate_x(rr);
-	//camera->zoom(cam_lerp);
+	camera->zoom(cam_lerp);
 	camera->rotate_y(camylerp);
 	camera->rotate_x(camxlerp);
 	camera->update_transform();
 	//camera->rotate_x(-tilt_x);
 	//camera->rotate_y(-tilt_y);
-	//camera->zoom(1/cam_lerp);
+	camera->zoom(1/cam_lerp);
 	long culled = _render_mesh(m);
 	camera->rotate_x(-camxlerp);
 	camera->rotate_y(-camylerp);

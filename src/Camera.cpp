@@ -79,21 +79,21 @@ void Camera::update_transform() {
 	
 	Vec3 zaxis = at.res(eye).normalize();
 	Vec3 xaxis = up.cross(zaxis).normalize();
-	Vec3 yaxis = zaxis.cross(xaxis).normalize();
+	Vec3 yaxis = zaxis.cross(xaxis);
 
-	this->transform[0][0] = xaxis.x*this->scale;
-	this->transform[1][0] = xaxis.y*this->scale;
-	this->transform[2][0] = xaxis.z*this->scale;
+	this->transform[0][0] = xaxis.x;
+	this->transform[1][0] = xaxis.y;
+	this->transform[2][0] = xaxis.z;
 	this->transform[3][0] = -xaxis.dot(eye);
 
-	this->transform[0][1] = yaxis.x*this->scale;
-	this->transform[1][1] = yaxis.y*this->scale;
-	this->transform[2][1] = yaxis.z*this->scale;
+	this->transform[0][1] = yaxis.x;
+	this->transform[1][1] = yaxis.y;
+	this->transform[2][1] = yaxis.z;
 	this->transform[3][1] = -yaxis.dot(eye);
 
-	this->transform[0][2] = zaxis.x*this->scale;
-	this->transform[1][2] = zaxis.y*this->scale;
-	this->transform[2][2] = zaxis.z*this->scale;
+	this->transform[0][2] = zaxis.x;
+	this->transform[1][2] = zaxis.y;
+	this->transform[2][2] = zaxis.z;
 	this->transform[3][2] = -zaxis.dot(eye);
 	
 	this->transform[0][3] = 0;
