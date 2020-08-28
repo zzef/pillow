@@ -175,19 +175,25 @@ void get_pairs(struct vector3D poly_r[4],
 		float delta_g = g1-g;
 		float delta_b = b1-b;
 		float delta_z = z1-z0;
+		
+		float sz = (1/z0);
+		float ez = (1/z1);
+		float dz = ez-sz;
+		float dz1 = 1/dz;
+
 
 		for (int i = 0; i<no_points; i++) {
 			float prop = (float) i/(no_points-1);
 			int x = curr_raster[i].x;
 			int y = curr_raster[i].y;
-			
+			float depth = 1/(z0 + (prop*delta_z));
+			float dprop = (float) (sz*prop)/((prop*-dz)+ez);	
 			struct Color col = {
-				(unsigned char) (r + (prop*delta_r)),
-				(unsigned char) (g + (prop*delta_g)),
-				(unsigned char) (b + (prop*delta_b))
+				(unsigned char) (r + (dprop*delta_r)),
+				(unsigned char) (g + (dprop*delta_g)),
+				(unsigned char) (b + (dprop*delta_b))
 			};
-			float depth = z0 + (prop*delta_z);
-			struct edge_pixel n = {x,col,1/depth};
+			struct edge_pixel n = {x,col,depth};
 			edge_pixels[y-min][x-minx]=n;
 		}
 	}
@@ -333,7 +339,7 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		struct vertex *v = clip_coords[k];
 		float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
 		float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-		float z = v->w;
+		float z = v->z;
 
 		struct vector3D r1 = {x,y,1/z};
 
@@ -367,10 +373,15 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		vertex_attributes[3]={nmc[0],nmc[1],nmc[2]};
 	}
 	else if (!no_rasterize ) {
-		vertex_attributes[0]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
-		vertex_attributes[1]={colors->at(1).x,colors->at(1).y,colors->at(1).z};
-		vertex_attributes[2]={colors->at(2).x,colors->at(2).y,colors->at(2).z};
-		vertex_attributes[3]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
+		vertex_attributes[0]={255,0,0};
+		vertex_attributes[1]={0,255,0};
+		vertex_attributes[2]={0,0,255};
+		vertex_attributes[3]={255,0,0};
+
+		//vertex_attributes[0]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
+		//vertex_attributes[1]={colors->at(1).x,colors->at(1).y,colors->at(1).z};
+		//vertex_attributes[2]={colors->at(2).x,colors->at(2).y,colors->at(2).z};
+		//vertex_attributes[3]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
 	}
 	
 
@@ -412,12 +423,18 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 
 		//printf("first last - > (%d, %d)\n",first,last);	
 		
-		float startz = edge_pixels[l][is].depth;			
-		float endz = edge_pixels[l][il].depth;			
-			
+		float startz = 1/edge_pixels[l][is].depth;			
+		float endz = 1/edge_pixels[l][il].depth;			
+		
+		float sz = 1/startz;
+		float ez = 1/endz;
+		
+		float dz = ez-sz;
+		float dz1 = 1/dz;
+
 		float startr = (float) edge_pixels[l][is].c.r;			
 		float startg = (float) edge_pixels[l][is].c.g;			
-		float startb = (float) edge_pixels[l][is].c.b;			
+		float startb = (float) edge_pixels[l][is].c.b;						
 		
 		float endr = (float) edge_pixels[l][il].c.r;
 		float endg = (float) edge_pixels[l][il].c.g;
@@ -434,7 +451,7 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 
 		for (int n=first; n<last+1; n++) {
 			float prop = (float) (n-first)/(last-first+1);			
-			float z = startz+ (prop*delta_z);
+			float z = 1/(startz+ (prop*delta_z));
 			if (edge_pixels[l][n-minx].x != -1) {
 				//printf("depth %f %f\n",edge_pixels[l][n-minx].depth,z);
 				if (!draw_wireframe) {
@@ -451,10 +468,14 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 				edge_pixels[l][n-minx]=empty;	
 				continue;
 			}
-
-			unsigned char r = (unsigned char) (startr + (prop*delta_r));
-			unsigned char g = (unsigned char) (startg + (prop*delta_g));
-			unsigned char b = (unsigned char) (startb + (prop*delta_b));
+			//float dprop = (float) (z-startz)/delta_z;
+			//if (delta_z==0)
+			//	dprop=prop;
+	
+			float dprop = (float) (sz*prop)/((prop*-dz)+ez);	
+			unsigned char r = (unsigned char) (startr + (dprop*delta_r));
+			unsigned char g = (unsigned char) (startg + (dprop*delta_g));
+			unsigned char b = (unsigned char) (startb + (dprop*delta_b));
 			unsigned char color[4] = {
 				r,g,b,255
 			};

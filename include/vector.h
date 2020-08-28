@@ -1,6 +1,13 @@
 #ifndef VEC3_H
 #define VEC3_H
 
+struct vector4D {
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
 struct vector3D {
 	float x;
 	float y;
