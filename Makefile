@@ -1,4 +1,4 @@
-CC = g++
+CC = g++ -g
 LIBS = -lSDL2 -lSDL2_ttf
 IDIR = include
 BINC = $(IDIR)/includes.h

@@ -32,8 +32,8 @@ class Display {
 
 		unsigned char buffer[MAX_W][MAX_H][4];
 		float depth_buffer[MAX_W][MAX_H];
-		int height;
-		int width;
+		int height = 0;
+		int width = 0;
 		int FONT_H = 30;	
 		std::string title;
 		unsigned char clc[4] = {30,30,30,255};

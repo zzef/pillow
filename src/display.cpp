@@ -139,6 +139,7 @@ void Display::flip_buffer() {
 
 void Display::set_pixel(int x, int y, unsigned char* color,float depth) {
 
+
 	if (x<0 || x >= this->width) {
 		//////printf("clipped x\n");
 		return;
@@ -147,6 +148,7 @@ void Display::set_pixel(int x, int y, unsigned char* color,float depth) {
 		//////printf("clipped y\n");
 		return;
 	}
+
 
 	if (depth_buffering) {
 		float d = this->depth_buffer[x][y];

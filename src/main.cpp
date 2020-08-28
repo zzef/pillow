@@ -90,7 +90,7 @@ unsigned char clear_color[4] = {225,225,225,255};
 bool no_clipping=false;
 long selected = 0;
 const struct viewport vp = {150,50,800,600};
-const float far = 20;
+const float far = 10;
 const float near = 1;
 const int fov = 90;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
@@ -134,6 +134,7 @@ void get_pairs(struct vector3D poly_r[4],
 
 	for (int k = 0; k<3; k++) {
 		
+			
 		float r = (float) v_a[k].r;
 		float g = (float) v_a[k].g;
 		float b = (float) v_a[k].b;
@@ -149,6 +150,7 @@ void get_pairs(struct vector3D poly_r[4],
 		int y1 = (int)poly_r[k+1].y;
 		float z1 = (float) poly_r[k+1].z;
 
+		//printf("x0 %i y0 %i x1 %i y1 %i z0 %f z1 %f\n",x0,y0,x1,y1,z0,z1);
 
 		int dx = abs(x1-x0);
 		int dy = abs(y1-y0);
@@ -339,8 +341,11 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		struct vertex *v = clip_coords[k];
 		float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
 		float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-		float z = v->z;
+		
+		if (x>=WIN_WIDTH || x<0 || y>=WIN_HEIGHT || y<0)
+			return;
 
+		float z = v->z;
 		struct vector3D r1 = {x,y,1/z};
 
 		if (draw_vertex)
@@ -415,7 +420,8 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 			for (int n=first; n<last+1; n++) {
 				if (edge_pixels[l][n-minx].x != -1) {
 					display->set_pixel(n,yval,wfc,-1);
-					edge_pixels[l][n-minx]=empty;	
+					//printf("%i %i\n",l,n-minx);
+					edge_pixels[l][n-minx]=empty;			
 				}
 			}
 			continue;
@@ -467,11 +473,8 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 				}
 				edge_pixels[l][n-minx]=empty;	
 				continue;
-			}
-			//float dprop = (float) (z-startz)/delta_z;
-			//if (delta_z==0)
-			//	dprop=prop;
-	
+			}	
+				
 			float dprop = (float) (sz*prop)/((prop*-dz)+ez);	
 			unsigned char r = (unsigned char) (startr + (dprop*delta_r));
 			unsigned char g = (unsigned char) (startg + (dprop*delta_g));
@@ -480,6 +483,7 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 				r,g,b,255
 			};
 			display->set_pixel(n,yval,color,z);
+			
 		}
 	}
 }
@@ -542,6 +546,10 @@ long _render_mesh(Model *m) {
 				}
 			}
 	
+			if ( v02.z<=(v02.z/v02.w) || v12.z<=(v12.z/v12.w) || v22.z<=(v22.z/v22.w )) //crappy clipping
+				continue;
+		
+
 			render_triangle(clip_coords,&colors);
 		}
 	}
@@ -721,7 +729,10 @@ long _render_mesh(Model *m) {
 			struct vertex* clip_coords[4] = {&v02,&v12,&v22,&v02};
 		
 			//Normalized Device Coordinates	
-			
+
+			if ( v02.z<=(v02.z/v02.w) || v12.z<=(v12.z/v12.w) || v22.z<=(v22.z/v22.w )) //crappy clipping
+				continue;
+		
 			render_triangle(clip_coords,&colors);
 		}
 	}
@@ -780,7 +791,8 @@ long render_mesh(Model *m) {
 	//point_light[0][5]+=0.02f;
 	//point_light[1][5]+=0.02f;
 	unsigned char color[4] = {120,120,120,255};
-	float sf = 1.0f;
+	cam_lerp += (cam_zoom - cam_lerp) * 0.25;
+	float sf = cam_lerp;
 	m->scale(sf,sf,sf);
 	tilt_y+=tilt;
 	
@@ -800,22 +812,21 @@ long render_mesh(Model *m) {
 	m->rotate_x(lerptx);
 	//m->rotate_y(1.5f);
 	//camera->lookAt(tx,ty,tz);
-	m->translate(lerp_tx,lerp_ty,lerp_tz);
+	m->translate(lerp_tx,lerp_ty,-3);
 	float dir = 1.5f;
 	float rr = 90;
 	//camera->rotate_x(rr);
-	cam_lerp += (cam_zoom - cam_lerp) * 0.25;
-	camera->zoom(cam_lerp);
+	//camera->zoom(cam_lerp);
 	camera->rotate_y(camylerp);
 	camera->rotate_x(camxlerp);
 	camera->update_transform();
 	//camera->rotate_x(-tilt_x);
 	//camera->rotate_y(-tilt_y);
-	camera->zoom(1/cam_lerp);
+	//camera->zoom(1/cam_lerp);
 	long culled = _render_mesh(m);
 	camera->rotate_x(-camxlerp);
 	camera->rotate_y(-camylerp);
-	m->translate(-lerp_tx,-lerp_ty,-lerp_tz);
+	m->translate(-lerp_tx,-lerp_ty,3);
 	m->rotate_x(-lerptx);
 	m->rotate_y(-lerpty);
 	m->scale(1/sf,1/sf,1/sf);
@@ -1085,8 +1096,8 @@ int main(int argc, char* args[]) {
 	display->set_clear_color(clear_color);
 	clear_edge_pixels();
 	camera = new Camera();
-	camera->position(0,0,3);	
-	camera->lookAt(0,0,0);
+	camera->position(0,0,0);	
+	camera->lookAt(0,0,-3);
 	
 	int frames = 0;
 	clock_t before = clock();
