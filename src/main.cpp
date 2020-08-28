@@ -95,7 +95,7 @@ const float near = 1;
 const int fov = 90;
 const float S = 1/(tan((fov/2)*(M_PI/180)));
 const float aspect_ratio = (float) WIN_WIDTH/WIN_HEIGHT;
-struct edge_pixel empty = {-1,NULL,0};
+struct edge_pixel empty = {-1,(unsigned char) NULL,0};
 std::string g_mesh_path;
 std::string g_mtl_path;
 float projection_matrix[4][4] = {
@@ -373,15 +373,15 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		vertex_attributes[3]={nmc[0],nmc[1],nmc[2]};
 	}
 	else if (!no_rasterize ) {
-		vertex_attributes[0]={255,0,0};
-		vertex_attributes[1]={0,255,0};
-		vertex_attributes[2]={0,0,255};
-		vertex_attributes[3]={255,0,0};
+		//vertex_attributes[0]={255,0,0};
+		//vertex_attributes[1]={0,255,0};
+		//vertex_attributes[2]={0,0,255};
+		//vertex_attributes[3]={255,0,0};
 
-		//vertex_attributes[0]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
-		//vertex_attributes[1]={colors->at(1).x,colors->at(1).y,colors->at(1).z};
-		//vertex_attributes[2]={colors->at(2).x,colors->at(2).y,colors->at(2).z};
-		//vertex_attributes[3]={colors->at(0).x,colors->at(0).y,colors->at(0).z};
+		vertex_attributes[0]={(unsigned char) colors->at(0).x,(unsigned char) colors->at(0).y,(unsigned char) colors->at(0).z};
+		vertex_attributes[1]={(unsigned char) colors->at(1).x,(unsigned char) colors->at(1).y,(unsigned char) colors->at(1).z};
+		vertex_attributes[2]={(unsigned char) colors->at(2).x,(unsigned char) colors->at(2).y,(unsigned char) colors->at(2).z};
+		vertex_attributes[3]={(unsigned char) colors->at(0).x,(unsigned char) colors->at(0).y,(unsigned char) colors->at(0).z};
 	}
 	
 
