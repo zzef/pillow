@@ -15,11 +15,12 @@ Pillow is a 3D software rendering engine built from scratch in C++. It intention
 ## Issues/Things to do
 - Proper memory management (Not good at all right now)
 - Better parser for loading mesh and material files (current method does not account for errors in files)
-- Finish off clipping
+- Implement real clipping in 3D space and window space
 - Arcball camera
 - Texturing
 - Anti-aliasing (FXAA)
 - multithreading
+- Fix strange artefacts when near plane altered
 
 ## How to run
 You will need linux to run. Please do the following to run the demo:
