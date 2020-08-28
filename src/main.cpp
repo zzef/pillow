@@ -341,9 +341,9 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		struct vertex *v = clip_coords[k];
 		float x = (v->x/v->w)*WIN_WIDTH + (WIN_WIDTH/2);
 		float y = (-v->y/v->w)*WIN_HEIGHT + (WIN_HEIGHT/2);
-		
-		if (x>=WIN_WIDTH || x<0 || y>=WIN_HEIGHT || y<0)
-			return;
+	
+		x = std::max(std::min((float)WIN_WIDTH-1,x),0.0f);
+		y = std::max(std::min((float)WIN_HEIGHT-1,y),0.0f);	
 
 		float z = v->z;
 		struct vector3D r1 = {x,y,1/z};
