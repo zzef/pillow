@@ -1115,10 +1115,8 @@ int main(int argc, char* args[]) {
 	for (int i = 0; i < argc; i++) {
 		std::vector<std::string> tmp;
 		const std::string str(args[i]);
-		std::cout << str << std::endl;
 		_split(str,tmp,'.');
 		if (tmp.size()>1) {
-			std::cout << tmp[0] << std::endl;
 			if (tmp[1]=="obj") {
 				models.push_back(tmp[0]);
 			}
