@@ -47,6 +47,7 @@ class Display {
 
 		Display(int width, int height, std::string title);
 		void show();
+		void draw_luminance();
 		void clear_buffer();
 		void init();
 		void draw_text(const std::string& str, int x, int y, char* color, int size);
@@ -59,6 +60,8 @@ class Display {
 
 	private:
 		void prepare_buffers();
+		float luminance(int px, int py);
+		float edge_threshold = (1/8);
 };
 
 

@@ -121,8 +121,106 @@ void Display::draw_text(const std::string& str, int x, int y, char* color, int s
 
 }
 
+float Display::luminance(int px, int py) {
+
+	return (this->buffer[px][py][1] * (0.587/0.299) * this->buffer[px][py][0]);
+
+}
+
+void Display::draw_luminance() {
+
+	for (int y = 0; y < this->height; y+=3) {
+		for (int x = 0; x < this->width; x+=3) {
+		
+			float luma_m = luminance(x+1,y+1);
+
+			float luma_n = luminance(x+1,y);
+			float luma_e = luminance(x+2,y+1);
+			float luma_s = luminance(x+1,y+2);
+			float luma_w = luminance(x,y+1);
+
+			float luma_ne = luminance(x+2,y);	
+			float luma_nw = luminance(x,y);	
+			float luma_se = luminance(x+2,y+2);	
+			float luma_sw = luminance(x,y+2);	
+	
+			
+			float edgeVert = abs((0.25 * luma_nw) + (-0.5 * luma_n) + (0.25 * luma_ne)) + 
+				abs((0.50 * luma_w ) + (-1.0 * luma_m) + (0.50 * luma_e )) +abs((0.25 * luma_sw) + 
+				(-0.5 * luma_s) + (0.25 * luma_se));
+			
+			float edgeHorz = abs((0.25 * luma_nw) + (-0.5 * luma_w) + (0.25 * luma_sw)) + 
+				abs((0.50 * luma_n ) + (-1.0 * luma_m) + (0.50 * luma_s )) +abs((0.25 * luma_ne) + 
+				(-0.5 * luma_e) + (0.25 * luma_se));
+
+			float vert = (edgeVert/255.0f);
+			float horz = (edgeHorz/255.0f);
+			
+			bool horzSpan = horz >= vert;
+	
+			if (vert>this->edge_threshold || horz>this->edge_threshold) {
+
+				/*
+				if (Gx>Gy) {
+					this->buffer[x+1][y][0] = (int) (this->buffer[x][y][0]+this->buffer[x+2][y][0])/2.0f;
+					this->buffer[x+1][y+1][0] = (int) (this->buffer[x][y+1][0]+this->buffer[x+2][y+1][0])/2.0f;
+					this->buffer[x+1][y+2][0] = (int) (this->buffer[x][y+2][0]+this->buffer[x+2][y+2][0])/2.0f;
+
+					this->buffer[x+1][y][1] = (int) (this->buffer[x][y][1]+this->buffer[x+2][y][1])/2.0f;
+					this->buffer[x+1][y+1][1] = (int) (this->buffer[x][y+1][1]+this->buffer[x+2][y+1][1])/2.0f;
+					this->buffer[x+1][y+2][1] = (int) (this->buffer[x][y+2][1]+this->buffer[x+2][y+2][1])/2.0f;
+
+					this->buffer[x+1][y][2] = (int) (this->buffer[x][y][2]+this->buffer[x+2][y][2])/2.0f;
+					this->buffer[x+1][y+1][2] = (int) (this->buffer[x][y+1][2]+this->buffer[x+2][y+1][2])/2.0f;
+					this->buffer[x+1][y+2][2] = (int) (this->buffer[x][y+2][2]+this->buffer[x+2][y+2][2])/2.0f;
+
+					this->buffer[x+1][y][3] = (int) (this->buffer[x][y][3]+this->buffer[x+2][y][3])/2.0f;
+					this->buffer[x+1][y+1][3] = (int) (this->buffer[x][y+1][3]+this->buffer[x+2][y+1][3])/2.0f;
+					this->buffer[x+1][y+2][3] = (int) (this->buffer[x][y+2][3]+this->buffer[x+2][y+2][3])/2.0f;
+				}
+				else {
+					this->buffer[x][y+1][0] = (int) (this->buffer[x][y][0]+this->buffer[x][y+2][0])/2.0f;	
+					this->buffer[x+1][y+1][0] = (int) (this->buffer[x+1][y][0]+this->buffer[x+1][y+2][0])/2.0f;	
+					this->buffer[x+2][y+1][0] = (int) (this->buffer[x+2][y][0]+this->buffer[x+2][y+2][0])/2.0f;	
+
+					this->buffer[x][y+1][1] = (int) (this->buffer[x][y][1]+this->buffer[x][y+2][1])/2.0f;	
+					this->buffer[x+1][y+1][1] = (int) (this->buffer[x+1][y][1]+this->buffer[x+1][y+2][1])/2.0f;	
+					this->buffer[x+2][y+1][1] = (int) (this->buffer[x+2][y][1]+this->buffer[x+2][y+2][1])/2.0f;	
+
+					this->buffer[x][y+1][2] = (int) (this->buffer[x][y][2]+this->buffer[x][y+2][2])/2.0f;	
+					this->buffer[x+1][y+1][2] = (int) (this->buffer[x+1][y][2]+this->buffer[x+1][y+2][2])/2.0f;	
+					this->buffer[x+2][y+1][2] = (int) (this->buffer[x+2][y][2]+this->buffer[x+2][y+2][2])/2.0f;	
+
+					this->buffer[x][y+1][3] = (int) (this->buffer[x][y][3]+this->buffer[x][y+2][3])/2.0f;	
+					this->buffer[x+1][y+1][3] = (int) (this->buffer[x+1][y][3]+this->buffer[x+1][y+2][3])/2.0f;	
+					this->buffer[x+2][y+1][3] = (int) (this->buffer[x+2][y][3]+this->buffer[x+2][y+2][3])/2.0f;		
+				}
+				*/
+				
+				for (int j = 0; j<3; j++) {
+					for (int i = 0; i<3; i++) {
+						if (horzSpan) {
+							//this->buffer[x+i][y+j][0]=0;
+							//this->buffer[x+i][y+j][1]=0;
+							//this->buffer[x+i][y+j][2]=255;
+							//this->buffer[x+i][y+j][3]=255;	
+						}
+						else {
+							//this->buffer[x+i][y+j][0]=0;
+							//this->buffer[x+i][y+j][1]=0;
+							//this->buffer[x+i][y+j][2]=0;
+							//this->buffer[x+i][y+j][3]=255;	
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 void Display::flip_buffer() {
+
+	draw_luminance();
 	unsigned char* bytes = nullptr;
 	int pitch = 0;
 	//get locked pixels and store in bytes for write access
