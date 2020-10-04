@@ -34,7 +34,9 @@ You will need linux to run. Please do the following to run the demo:
 
 `make`
 
-`./pillow`
+Run pillow and specify a model from the models directory.
+
+`./pillow models/earth/earth.obj`
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample3.gif">
