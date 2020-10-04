@@ -22,6 +22,11 @@ Pillow is a 3D software rendering engine built from scratch in C++. It intention
 - multithreading
 - Fix strange artefacts when near plane altered
 
+## Dependencies
+- libSDL2
+- libSDL2_ttf
+- gcc
+
 ## How to run
 You will need linux to run. Please do the following to run the demo:
 
