@@ -2,6 +2,7 @@
 #include "SDL2/SDL_ttf.h"
 #include "../include/includes.h"
 #include "../include/display.h"
+#include <unistd.h>
 
 Display::Display(int width, int height, std::string title) {
 	this->width=std::max(MIN_W,std::min(width,MAX_W));
@@ -34,11 +35,15 @@ void Display::clear_buffer() {
 void Display::init() {
 	//Start SDL
 	
+	std::string str(get_current_dir_name());
+	std::string path = str + "/fonts/BalooTamma2-Medium.ttf";
+	
 	if (TTF_Init()==-1) 
 		printf("TTF_Init: %s\n",TTF_GetError());
 
 	for (int i = this->min_font_size; i<=this->max_font_size; i++) {
-		TTF_Font *font = TTF_OpenFont("/home/zef/pillow/fonts/BalooTamma2-Medium.ttf",i);
+
+		TTF_Font *font = TTF_OpenFont(path.c_str(),i);
 		if (!font)
 			printf("TTF_OpenFont: %s\n",TTF_GetError());
 		else {
