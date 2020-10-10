@@ -12,6 +12,14 @@ Pillow is a 3D software rendering engine built from scratch in C++. It intention
 - Back-face culling
 - Gouraud shading using the phong illumination model
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample3.gif">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample.gif">
+</p>
+
 ## Issues/Things to do
 - Proper memory management (Not good at all right now)
 - Better parser for loading mesh and material files (current method does not account for errors in files)
@@ -37,11 +45,3 @@ You will need linux to run. Please do the following to run the demo:
 Run pillow and specify a model from the models directory.
 
 `./pillow models/earth/earth.obj`
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample3.gif">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample.gif">
-</p>
