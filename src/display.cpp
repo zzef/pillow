@@ -35,8 +35,10 @@ void Display::clear_buffer() {
 void Display::init() {
 	//Start SDL
 	
-	std::string str(get_current_dir_name());
-	std::string path = str + "/fonts/BalooTamma2-Medium.ttf";
+	char buffer[1024];
+ 	getcwd(buffer,1024);
+ 	std::string str(buffer);
+ 	std::string path = str + "/fonts/BalooTamma2-Medium.ttf";
 	
 	if (TTF_Init()==-1) 
 		printf("TTF_Init: %s\n",TTF_GetError());
@@ -89,7 +91,7 @@ void Display::draw_text(std::string&& str, int x, int y, char* color, int size) 
 	int w,h;
 	//printf("%s\n %i %i %i\n",string,txt.color[0],txt.color[1],txt.color[2]);
 	TTF_SizeText(this->fonts[size],string,&w,&h);
-	SDL_Color col = {color[0],color[1],color[2]};
+	SDL_Color col = {static_cast<Uint8>(color[0]),static_cast<Uint8>(color[1]),static_cast<Uint8>(color[2])};
 	surfaceMessage = TTF_RenderText_Blended(this->fonts[size],string,col);
 	Message = SDL_CreateTextureFromSurface(this->renderer,surfaceMessage);
 	SDL_Rect Message_rect;
@@ -112,7 +114,7 @@ void Display::draw_text(const std::string& str, int x, int y, char* color, int s
 	int w,h;
 	//printf("%s\n %i %i %i\n",string,txt.color[0],txt.color[1],txt.color[2]);
 	TTF_SizeText(this->fonts[size],string,&w,&h);
-	SDL_Color col = {color[0],color[1],color[2]};
+	SDL_Color col = {static_cast<Uint8>(color[0]),static_cast<Uint8>(color[1]),static_cast<Uint8>(color[2])};
 	surfaceMessage = TTF_RenderText_Blended(this->fonts[size],string,col);
 	Message = SDL_CreateTextureFromSurface(this->renderer,surfaceMessage);
 	SDL_Rect Message_rect;

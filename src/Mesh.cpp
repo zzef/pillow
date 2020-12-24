@@ -35,7 +35,7 @@ bool Mesh::load(std::string path) {
 				);
 			}
 			else if (line_p[0]=="f") {
-				std::vector<std::pair<long,long>> indices;
+				std::vector< std::pair< long,long > > indices;
 				for (int i = 1; i<line_p.size(); i++) {
 					std::vector<std::string> index;
 					std::string str(line_p[i]);
@@ -121,7 +121,7 @@ long Mesh::vertices() {
 	return v_list.size();
 }
 
-void Mesh::add_face(std::vector<std::pair<long,long>> face, std::string m) {
+void Mesh::add_face(std::vector< std::pair< long,long > > face, std::string m) {
 	this->f_list.push_back(face);
 	//printf("face ");
 	//for (int i = 0; i < face.size(); i++) {
