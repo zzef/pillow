@@ -74,12 +74,13 @@ bool model_spin = false;
 bool camera_mode = false;
 bool default_material = false;
 
+long culled = 0;	
 Camera* camera;
 int fps = 0;
 
 std::map<std::string,long> menu_values;
 struct vector2D curr_raster[(WIN_HEIGHT*2)+(WIN_WIDTH*2)];
-struct edge_pixel edge_pixels[WIN_HEIGHT][WIN_WIDTH];
+struct edge_pixel edge_pixels[10][WIN_HEIGHT][WIN_WIDTH];
 unsigned char pc[4] = {255,255,255,255};					
 const unsigned char wf[3] = {55,55,55};	
 unsigned char nmc[4] = {0,0,0};				
@@ -129,7 +130,7 @@ Display* display;
 
 
 void get_pairs(struct vector3D poly_r[4],
-	struct Color v_a[4], int min,int minx
+	struct Color v_a[4], int min,int minx, int t
 ) {
 
 	for (int k = 0; k<3; k++) {
@@ -196,7 +197,7 @@ void get_pairs(struct vector3D poly_r[4],
 				(unsigned char) (b + (dprop*delta_b))
 			};
 			struct edge_pixel n = {x,col,depth};
-			edge_pixels[y-min][x-minx]=n;
+			edge_pixels[t][y-min][x-minx]=n;
 		}
 	}
 }
@@ -255,11 +256,11 @@ void clip_triangle(std::vector<long>& ply, std::vector<struct vertex> &new_poly,
 
 }
 
-void clear_edge_pixels() {
+void clear_edge_pixels(int t) {
 	
 	for (int y = 0; y<WIN_HEIGHT; y++) {
 		for (int x = 0; x<WIN_WIDTH; x++) {
-			edge_pixels[y][x]=empty;
+			edge_pixels[t][y][x]=empty;
 		}
 	}
 }
@@ -327,7 +328,7 @@ void draw_vector(Vec3 v1, Vec3 v2) {
 
 }
 
-void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>* colors) {
+void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>* colors, int t) {
 
 		
 	//PERSPECTIVE DIVIDE HERE
@@ -390,7 +391,7 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 	}
 	
 
-	get_pairs(poly_r,vertex_attributes,min,minx);
+	get_pairs(poly_r,vertex_attributes,min,minx,t);
 	for (int l = 0; l<range; l++) {
 
 		int yval = l+min;
@@ -401,15 +402,15 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		int il = 0;
 		for (int b = 0; b<rangex; b++) {
 
-			if (edge_pixels[l][b].x==-1)
+			if (edge_pixels[t][l][b].x==-1)
 				continue;
-			if (edge_pixels[l][b].x <= smallest) {
-				smallest=edge_pixels[l][b].x;
+			if (edge_pixels[t][l][b].x <= smallest) {
+				smallest=edge_pixels[t][l][b].x;
 				is=b;
 			}
 
-			if (edge_pixels[l][b].x >= largest) {
-				largest=edge_pixels[l][b].x;
+			if (edge_pixels[t][l][b].x >= largest) {
+				largest=edge_pixels[t][l][b].x;
 				il=b;
 			}
 		}
@@ -418,10 +419,10 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		
 		if (no_rasterize) {	
 			for (int n=first; n<last+1; n++) {
-				if (edge_pixels[l][n-minx].x != -1) {
+				if (edge_pixels[t][l][n-minx].x != -1) {
 					display->set_pixel(n,yval,wfc,-1);
 					//printf("%i %i\n",l,n-minx);
-					edge_pixels[l][n-minx]=empty;			
+					edge_pixels[t][l][n-minx]=empty;			
 				}
 			}
 			continue;
@@ -429,8 +430,8 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 
 		//printf("first last - > (%d, %d)\n",first,last);	
 		
-		float startz = 1/edge_pixels[l][is].depth;			
-		float endz = 1/edge_pixels[l][il].depth;			
+		float startz = 1/edge_pixels[t][l][is].depth;			
+		float endz = 1/edge_pixels[t][l][il].depth;			
 		
 		float sz = 1/startz;
 		float ez = 1/endz;
@@ -438,13 +439,13 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		float dz = ez-sz;
 		float dz1 = 1/dz;
 
-		float startr = (float) edge_pixels[l][is].c.r;			
-		float startg = (float) edge_pixels[l][is].c.g;			
-		float startb = (float) edge_pixels[l][is].c.b;						
+		float startr = (float) edge_pixels[t][l][is].c.r;			
+		float startg = (float) edge_pixels[t][l][is].c.g;			
+		float startb = (float) edge_pixels[t][l][is].c.b;						
 		
-		float endr = (float) edge_pixels[l][il].c.r;
-		float endg = (float) edge_pixels[l][il].c.g;
-		float endb = (float) edge_pixels[l][il].c.b;
+		float endr = (float) edge_pixels[t][l][il].c.r;
+		float endg = (float) edge_pixels[t][l][il].c.g;
+		float endb = (float) edge_pixels[t][l][il].c.b;
 	
 		float delta_z = endz-startz;
 		float delta_r = endr-startr;
@@ -458,20 +459,20 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		for (int n=first; n<last+1; n++) {
 			float prop = (float) (n-first)/(last-first+1);			
 			float z = 1/(startz+ (prop*delta_z));
-			if (edge_pixels[l][n-minx].x != -1) {
+			if (edge_pixels[t][l][n-minx].x != -1) {
 				//printf("depth %f %f\n",edge_pixels[l][n-minx].depth,z);
 				if (!draw_wireframe) {
 					unsigned char col[4] = {
-						edge_pixels[l][n-minx].c.r,
-						edge_pixels[l][n-minx].c.g,
-						edge_pixels[l][n-minx].c.b,
+						edge_pixels[t][l][n-minx].c.r,
+						edge_pixels[t][l][n-minx].c.g,
+						edge_pixels[t][l][n-minx].c.b,
 						255
 					};
 					display->set_pixel(n,yval,col,z);
 				} else {
 					display->set_pixel(n,yval,wfc,z);
 				}
-				edge_pixels[l][n-minx]=empty;	
+				edge_pixels[t][l][n-minx]=empty;	
 				continue;
 			}	
 				
@@ -487,7 +488,10 @@ void render_triangle(struct vertex* clip_coords[4], std::vector<struct vector3D>
 		}
 	}
 }
-long _render_mesh(Model *m) {
+
+void render_no_rasterize(Model* m, long triangle) {
+
+	std::thread::id tid = std::this_thread::get_id();
 
 	struct vertex *v00;
 	struct vertex *v10;
@@ -500,63 +504,81 @@ long _render_mesh(Model *m) {
 	struct vertex v02;
 	struct vertex v12;
 	struct vertex v22;
-	long culled = 0;	
-		//Normalized Device Coordinates	
 	
-	if (no_rasterize || !show_materials) {
-		for (int i = 0; i<m->tris(); i++) {
-			
-			std::vector<struct vector3D> colors;
-			struct face f = m->faces.at(i);
+	std::vector<struct vector3D> colors;
+	struct face f = m->faces.at(triangle);
 
-			v00 = f.v0;
-			v10 = f.v1;
-			v20 = f.v2;
+	v00 = f.v0;
+	v10 = f.v1;
+	v20 = f.v2;
 	
-			v01 = apply_transformation(v00,camera->transform);
-			v11 = apply_transformation(v10,camera->transform);
-			v21 = apply_transformation(v20,camera->transform);
+	v01 = apply_transformation(v00,camera->transform);
+	v11 = apply_transformation(v10,camera->transform);
+	v21 = apply_transformation(v20,camera->transform);
 	
-			v02 = apply_transformation(&v01,projection_matrix);
-			v12 = apply_transformation(&v11,projection_matrix);
-			v22 = apply_transformation(&v21,projection_matrix);
-			struct vertex* clip_coords[4] = {&v02,&v12,&v22,&v02};
+	v02 = apply_transformation(&v01,projection_matrix);
+	v12 = apply_transformation(&v11,projection_matrix);
+	v22 = apply_transformation(&v21,projection_matrix);
+	struct vertex* clip_coords[4] = {&v02,&v12,&v22,&v02};
 	
-			//Normalized Device Coordinates	
+	//Normalized Device Coordinates	
 
-			Vec3 vec0 (v01.x,v01.y,v01.z);
-			Vec3 vec1 (v11.x,v11.y,v11.z);
-			Vec3 vec2 (v21.x,v21.y,v21.z);
+	Vec3 vec0 (v01.x,v01.y,v01.z);
+	Vec3 vec1 (v11.x,v11.y,v11.z);
+	Vec3 vec2 (v21.x,v21.y,v21.z);
 		
-			Vec3 res1 = vec0.res(vec1);
-			Vec3 res2 = vec0.res(vec2);
+	Vec3 res1 = vec0.res(vec1);
+	Vec3 res2 = vec0.res(vec2);
 	
-			Vec3 f_norm = res1.cross(res2).normalize();	
-			//printf("norm -> ");
-			//f_norm.print();	
-			Vec3 vec4 (0,0,0);
-			Vec3 diff = vec0;
+	Vec3 f_norm = res1.cross(res2).normalize();	
+	//printf("norm -> ");
+	//f_norm.print();	
+	Vec3 vec4 (0,0,0);
+	Vec3 diff = vec0;
 
-			//backface culling
+	//backface culling
 
-			if (backface_culling) {
-				if (f_norm.dot(diff)>0) {
-					culled++;
-					continue;
-				}
-			}
-
-			if ( v02.z>v02.w || v12.z>v12.w || v22.z>v22.w) //crappy clipping
-				continue;	
-
-
-			if ( v02.z<-v02.w || v12.z<-v12.w || v22.z<-v22.w) //crappy clipping
-				continue;	
-
-			render_triangle(clip_coords,&colors);
+	if (backface_culling) {
+		if (f_norm.dot(diff)>0) {
+			culled++;
+			return;
 		}
 	}
-	else {
+
+	if ( v02.z>v02.w || v12.z>v12.w || v22.z>v22.w) //crappy clipping
+		return;	
+
+
+	if ( v02.z<-v02.w || v12.z<-v12.w || v22.z<-v22.w) //crappy clipping
+		return;	
+
+	render_triangle(clip_coords,&colors,0);
+
+}
+
+long _render_mesh(Model *m) {
+
+	/*
+	struct vertex *v00;
+	struct vertex *v10;
+	struct vertex *v20;
+
+	struct vertex v01;
+	struct vertex v11;
+	struct vertex v21;
+
+	struct vertex v02;
+	struct vertex v12;
+	struct vertex v22;
+	//Normalized Device Coordinates	
+	*/
+	if (no_rasterize || !show_materials) {
+		for (int i = 0; i<m->tris(); i++) {
+			std::thread t (render_no_rasterize,m,i);	
+			t.join();
+		}
+	}
+	/*else {
 		std::vector<Vec3> all_lights;
 
 		for (int i = 0; i<lights; i++) {	
@@ -585,6 +607,7 @@ long _render_mesh(Model *m) {
 	
 		for (int i = 0; i<m->tris(); i++) {
 		
+ 			int thread = 0;
 			std::vector<struct vector3D> colors;
 			struct mtl* mat = m->mats.at(i);
 			if (default_material) {
@@ -740,10 +763,10 @@ long _render_mesh(Model *m) {
 			if ( v02.z<-v02.w || v12.z<-v12.w || v22.z<-v22.w) //crappy clipping
 				continue;
 		
-			render_triangle(clip_coords,&colors);
+			render_triangle(clip_coords,&colors,thread);
 		}
 	}
-	return culled;
+	return culled;*/
 }
 
 void load_models(std::vector<std::string> paths) {
@@ -894,6 +917,7 @@ void render() {
 }
 
 void update() {
+	culled=0;
 }
 
 void update_theme() {
@@ -1102,7 +1126,7 @@ int main(int argc, char* args[]) {
 	update_theme();	
 	display->init();
 	display->set_clear_color(clear_color);
-	clear_edge_pixels();
+	clear_edge_pixels(0);
 	camera = new Camera();
 	camera->position(0,0,0);	
 	camera->lookAt(0,0,-3);
