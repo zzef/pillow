@@ -12,6 +12,8 @@ Pillow is a 3D software rendering engine built from scratch in C++. It intention
 - Back-face culling
 - Gouraud shading using the phong illumination model
 
+See demo video at https://www.youtube.com/watch?v=SThUD-unuao 
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/zzef/pillow/master/docs/sample3.gif">
 </p>
